@@ -1,33 +1,48 @@
+import { useState } from "react";
 import Link from "next/link";
 import {
   Box,
   Button,
   Card,
   CardContent,
-  CardMedia,
   Chip,
   Typography,
 } from "@mui/material";
+import ImageSecurisee from "src/components/ImageSecurisee";
 import { formaterPrix } from "src/lib/format";
 import { urlImage } from "src/lib/api";
 import { usePanier } from "src/context/CartContext";
+import { useTr } from "src/lib/i18n";
+import { stockFaible, stockNumerique } from "src/lib/produit";
 
 const ProductCard = ({ produit }) => {
   const { ajouter } = usePanier();
+  const { t, locale } = useTr();
+  // Image indisponible (ex. fichier absent côté backend) : pastille 📦
+  // au lieu d'un cadre vide.
+  const [imageKO, setImageKO] = useState(false);
 
   return (
-    <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <Card
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        transition: "transform 0.15s ease, box-shadow 0.15s ease",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: "0 6px 20px rgba(11,31,58,0.14)",
+        },
+      }}
+    >
       <Link href={`/produits/${produit.slug}`} passHref legacyBehavior>
         <Box component="a" sx={{ textDecoration: "none" }}>
-          {produit.image_principale ? (
-            <CardMedia
-              component="img"
-              height="180"
-              image={urlImage(produit.image_principale)}
+          {produit.image_principale && !imageKO ? (
+            <ImageSecurisee
+              src={urlImage(produit.image_principale)}
               alt={produit.designation}
-              onError={(e) => {
-                e.target.style.display = "none";
-              }}
+              sx={{ height: 180, width: "100%", objectFit: "cover", display: "block" }}
+              onErreur={() => setImageKO(true)}
             />
           ) : (
             <Box
@@ -66,15 +81,26 @@ const ProductCard = ({ produit }) => {
           </Typography>
         </Link>
         <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", my: 1 }}>
-          {produit.promo_active && <Chip label="Promo" color="error" size="small" />}
-          {!produit.en_stock && <Chip label="Rupture de stock" size="small" />}
+          {produit.promo_active && (
+            <Chip label={t("commun.promo")} color="secondary" size="small" />
+          )}
+          {!produit.en_stock && (
+            <Chip label={t("commun.ruptureStock")} size="small" />
+          )}
           {produit.est_mis_en_avant && (
-            <Chip label="Mis en avant" color="primary" size="small" />
+            <Chip label={t("commun.misEnAvant")} color="primary" size="small" />
+          )}
+          {stockFaible(produit) && (
+            <Chip
+              label={t("produit.plusQue", { n: stockNumerique(produit) })}
+              color="error"
+              size="small"
+            />
           )}
         </Box>
         <Box sx={{ mt: "auto" }}>
           <Typography variant="h6" color="primary" sx={{ fontWeight: 700 }}>
-            {formaterPrix(produit.prix_effectif)}
+            {formaterPrix(produit.prix_effectif, locale)}
           </Typography>
           {produit.prix_barre && (
             <Typography
@@ -82,7 +108,7 @@ const ProductCard = ({ produit }) => {
               color="text.secondary"
               sx={{ textDecoration: "line-through" }}
             >
-              {formaterPrix(produit.prix_barre)}
+              {formaterPrix(produit.prix_barre, locale)}
             </Typography>
           )}
           <Button
@@ -92,7 +118,9 @@ const ProductCard = ({ produit }) => {
             disabled={!produit.en_stock}
             onClick={() => ajouter(produit, 1)}
           >
-            {produit.en_stock ? "Ajouter au panier" : "Rupture de stock"}
+            {produit.en_stock
+              ? t("commun.ajouterPanier")
+              : t("commun.ruptureStock")}
           </Button>
         </Box>
       </CardContent>

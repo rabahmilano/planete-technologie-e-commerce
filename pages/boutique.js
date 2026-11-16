@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Checkbox,
-  CircularProgress,
   FormControl,
   FormControlLabel,
   Grid,
@@ -17,10 +16,14 @@ import {
   Typography,
 } from "@mui/material";
 import ProductCard from "src/components/ProductCard";
+import { SqueletteProduits } from "src/components/Squelettes";
 import { getFamilles, getProduits } from "src/lib/api";
+import { useTr } from "src/lib/i18n";
+import { nomFamille } from "src/lib/produit";
 
 const Boutique = () => {
   const router = useRouter();
+  const { t, locale } = useTr();
   const [familles, setFamilles] = useState([]);
   const [produits, setProduits] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -57,8 +60,9 @@ const Boutique = () => {
         setTotal(donnees.total);
         setErreur("");
       })
-      .catch(() => setErreur("Impossible de charger les produits."))
+      .catch(() => setErreur(t("commun.erreurProduits")))
       .finally(() => setChargement(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, JSON.stringify(filtres)]);
 
   const appliquerFiltres = (nouveaux) => {
@@ -72,6 +76,7 @@ const Boutique = () => {
         delete requete[cle];
       }
     });
+    // router.push conserve la locale courante.
     router.push({ pathname: "/boutique", query: requete });
   };
 
@@ -86,13 +91,13 @@ const Boutique = () => {
   return (
     <Box>
       <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 3 }}>
-        Boutique
+        {t("commun.boutique")}
       </Typography>
       <Grid container spacing={3}>
         <Grid item xs={12} md={3}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
-              label="Rechercher"
+              label={t("commun.rechercher")}
               size="small"
               defaultValue={filtres.recherche || ""}
               onKeyDown={(e) => {
@@ -102,27 +107,29 @@ const Boutique = () => {
               }}
             />
             <FormControl size="small" fullWidth>
-              <InputLabel id="categorie-label">Catégorie</InputLabel>
+              <InputLabel id="categorie-label">
+                {t("filtres.categorie")}
+              </InputLabel>
               <Select
                 labelId="categorie-label"
                 id="categorie"
-                label="Catégorie"
+                label={t("filtres.categorie")}
                 value={filtres.famille || ""}
                 onChange={(e) =>
                   appliquerFiltres({ famille: e.target.value })
                 }
               >
-                <MenuItem value="">Toutes les catégories</MenuItem>
+                <MenuItem value="">{t("filtres.toutesCategories")}</MenuItem>
                 {familles.map((famille) => (
                   <MenuItem key={famille.id} value={famille.id}>
-                    {famille.nom} ({famille.nb_produits})
+                    {nomFamille(famille, locale)} ({famille.nb_produits})
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
             <Box sx={{ display: "flex", gap: 1 }}>
               <TextField
-                label="Prix min"
+                label={t("filtres.prixMin")}
                 size="small"
                 type="number"
                 defaultValue={filtres.prix_min || ""}
@@ -131,7 +138,7 @@ const Boutique = () => {
                 }
               />
               <TextField
-                label="Prix max"
+                label={t("filtres.prixMax")}
                 size="small"
                 type="number"
                 defaultValue={filtres.prix_max || ""}
@@ -149,7 +156,7 @@ const Boutique = () => {
                   }
                 />
               }
-              label="En promotion"
+              label={t("filtres.enPromo")}
             />
             <FormControlLabel
               control={
@@ -160,13 +167,13 @@ const Boutique = () => {
                   }
                 />
               }
-              label="En stock uniquement"
+              label={t("filtres.enStockUniquement")}
             />
             <Button
               variant="outlined"
               onClick={() => router.push("/boutique")}
             >
-              Effacer les filtres
+              {t("filtres.effacer")}
             </Button>
           </Box>
         </Grid>
@@ -177,24 +184,30 @@ const Boutique = () => {
               justifyContent: "space-between",
               alignItems: "center",
               mb: 2,
+              gap: 2,
+              flexWrap: "wrap",
             }}
           >
             <Typography color="text.secondary">
-              {total} produit(s)
+              {t("filtres.resultats", { n: total })}
             </Typography>
             <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="tri-label">Trier par</InputLabel>
+              <InputLabel id="tri-label">{t("filtres.trierPar")}</InputLabel>
               <Select
                 labelId="tri-label"
                 id="tri"
-                label="Trier par"
+                label={t("filtres.trierPar")}
                 value={filtres.tri || "pertinence"}
                 onChange={(e) => appliquerFiltres({ tri: e.target.value })}
               >
-                <MenuItem value="pertinence">Pertinence</MenuItem>
-                <MenuItem value="prix_asc">Prix croissant</MenuItem>
-                <MenuItem value="prix_desc">Prix décroissant</MenuItem>
-                <MenuItem value="nouveautes">Nouveautés</MenuItem>
+                <MenuItem value="pertinence">
+                  {t("filtres.pertinence")}
+                </MenuItem>
+                <MenuItem value="prix_asc">{t("filtres.prixAsc")}</MenuItem>
+                <MenuItem value="prix_desc">{t("filtres.prixDesc")}</MenuItem>
+                <MenuItem value="nouveautes">
+                  {t("filtres.nouveautes")}
+                </MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -204,12 +217,10 @@ const Boutique = () => {
             </Alert>
           )}
           {chargement ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-              <CircularProgress />
-            </Box>
+            <SqueletteProduits nombre={12} />
           ) : produits.length === 0 ? (
             <Typography color="text.secondary" sx={{ py: 6, textAlign: "center" }}>
-              Aucun produit ne correspond à ces critères.
+              {t("commun.aucunProduit")}
             </Typography>
           ) : (
             <Grid container spacing={2}>

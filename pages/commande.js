@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import {
   Alert,
   Box,
@@ -27,9 +28,11 @@ import {
   getWilayas,
   verifierCode,
 } from "src/lib/api";
+import { useTr } from "src/lib/i18n";
 
 const Commande = () => {
   const router = useRouter();
+  const { t, locale } = useTr();
   const { articles, sousTotal, vider, codePromo, setCodePromo } = usePanier();
   const [wilayas, setWilayas] = useState([]);
   const [communes, setCommunes] = useState([]);
@@ -148,14 +151,16 @@ const Commande = () => {
       if (resultat.valide) {
         setCodePromo({ code, montant_reduction: resultat.montant_reduction });
         setMessagePromo(
-          `Code appliqué : −${formaterPrix(resultat.montant_reduction)}.`,
+          t("panier.codeApplique", {
+            montant: formaterPrix(resultat.montant_reduction, locale),
+          }),
         );
       } else {
         setCodePromo(null);
-        setMessagePromo(resultat.message || "Code promo invalide.");
+        setMessagePromo(resultat.message || t("panier.codeInvalide"));
       }
     } catch (e) {
-      setMessagePromo("Impossible de vérifier ce code pour le moment.");
+      setMessagePromo(t("panier.codeErreur"));
     }
   };
 
@@ -167,18 +172,18 @@ const Commande = () => {
     e.preventDefault();
     setErreur("");
     if (!TELEPHONE_DZ.test(formulaire.telephone.trim())) {
-      setErreur("Le téléphone doit être un numéro algérien valide (05, 06 ou 07).");
+      setErreur(t("commande.erreurTelephone"));
       return;
     }
     if (!formulaire.code_wilaya || !formulaire.commune) {
-      setErreur("La wilaya et la commune sont obligatoires.");
+      setErreur(t("commande.erreurWilayaCommune"));
       return;
     }
     if (
       formulaire.type_livraison === "BUREAU" &&
       !formulaire.bureau_livraison
     ) {
-      setErreur("Choisissez un bureau de livraison.");
+      setErreur(t("commande.erreurBureau"));
       return;
     }
     setEnvoi(true);
@@ -214,7 +219,7 @@ const Commande = () => {
       const message =
         e.response?.data?.message ||
         e.response?.data?.errors?.[0]?.msg ||
-        "Impossible d'enregistrer la commande. Réessayez.";
+        t("commande.erreurEnvoi");
       setErreur(message);
     } finally {
       setEnvoi(false);
@@ -225,11 +230,13 @@ const Commande = () => {
     return (
       <Box sx={{ textAlign: "center", py: 6 }}>
         <Typography color="text.secondary" sx={{ mb: 2 }}>
-          Votre panier est vide : ajoutez des produits avant de commander.
+          {t("commande.vide")}
         </Typography>
-        <Button variant="contained" href="/boutique">
-          Voir la boutique
-        </Button>
+        <Link href="/boutique" passHref legacyBehavior>
+          <Button component="a" variant="contained">
+            {t("commun.voirBoutique")}
+          </Button>
+        </Link>
       </Box>
     );
   }
@@ -237,7 +244,7 @@ const Commande = () => {
   return (
     <Box>
       <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 3 }}>
-        Finaliser ma commande
+        {t("commande.titre")}
       </Typography>
       {erreur && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -248,26 +255,27 @@ const Commande = () => {
         <Grid item xs={12} md={7}>
           <Box component="form" onSubmit={valider} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
-              label="Nom complet"
+              label={t("commande.nomComplet")}
               required
               fullWidth
               value={formulaire.nom_client}
               onChange={changer("nom_client")}
             />
             <TextField
-              label="Téléphone (05, 06 ou 07)"
+              label={t("commande.telephone")}
               required
               fullWidth
               value={formulaire.telephone}
               onChange={changer("telephone")}
               placeholder="0550123456"
+              inputProps={{ inputMode: "tel", dir: "ltr" }}
             />
             <FormControl fullWidth required>
-              <InputLabel id="wilaya-label">Wilaya</InputLabel>
+              <InputLabel id="wilaya-label">{t("commande.wilaya")}</InputLabel>
               <Select
                 labelId="wilaya-label"
                 id="wilaya"
-                label="Wilaya"
+                label={t("commande.wilaya")}
                 value={formulaire.code_wilaya}
                 onChange={changerWilaya}
               >
@@ -280,11 +288,13 @@ const Commande = () => {
             </FormControl>
             {communesDisponibles ? (
               <FormControl fullWidth required>
-                <InputLabel id="commune-label">Commune</InputLabel>
+                <InputLabel id="commune-label">
+                  {t("commande.commune")}
+                </InputLabel>
                 <Select
                   labelId="commune-label"
                   id="commune"
-                  label="Commune"
+                  label={t("commande.commune")}
                   value={formulaire.communeId}
                   onChange={changerCommune}
                 >
@@ -297,20 +307,20 @@ const Commande = () => {
               </FormControl>
             ) : (
               <TextField
-                label="Commune"
+                label={t("commande.commune")}
                 required
                 fullWidth
                 value={formulaire.commune}
                 onChange={changerCommune}
-                helperText="Saisissez le nom de votre commune."
+                helperText={t("commande.communeAide")}
               />
             )}
             <TextField
-              label="Adresse exacte"
+              label={t("commande.adresse")}
               fullWidth
               value={formulaire.adresse_exacte}
               onChange={changer("adresse_exacte")}
-              placeholder="Rue, immeuble, point de repère…"
+              placeholder={t("commande.adressePlaceholder")}
             />
             <FormControl>
               <RadioGroup
@@ -321,23 +331,25 @@ const Commande = () => {
                 <FormControlLabel
                   value="DOMICILE"
                   control={<Radio />}
-                  label="À domicile"
+                  label={t("panier.domicile")}
                 />
                 <FormControlLabel
                   value="BUREAU"
                   control={<Radio />}
-                  label="Au bureau"
+                  label={t("panier.bureau")}
                 />
               </RadioGroup>
             </FormControl>
             {formulaire.type_livraison === "BUREAU" &&
               (bureauxDisponibles ? (
                 <FormControl fullWidth required>
-                  <InputLabel id="bureau-label">Bureau de livraison</InputLabel>
+                  <InputLabel id="bureau-label">
+                    {t("commande.bureauLivraison")}
+                  </InputLabel>
                   <Select
                     labelId="bureau-label"
                     id="bureau"
-                    label="Bureau de livraison"
+                    label={t("commande.bureauLivraison")}
                     value={formulaire.bureau_livraison}
                     onChange={changer("bureau_livraison")}
                   >
@@ -350,12 +362,12 @@ const Commande = () => {
                 </FormControl>
               ) : (
                 <TextField
-                  label="Bureau de livraison"
+                  label={t("commande.bureauLivraison")}
                   required
                   fullWidth
                   value={formulaire.bureau_livraison}
                   onChange={changer("bureau_livraison")}
-                  helperText="Nom du bureau Yalidine le plus proche."
+                  helperText={t("commande.bureauAide")}
                 />
               ))}
             <Button
@@ -367,16 +379,16 @@ const Commande = () => {
               {envoi ? (
                 <CircularProgress size={24} color="inherit" />
               ) : (
-                "Confirmer ma commande"
+                t("commande.confirmer")
               )}
             </Button>
             <Typography variant="body2" color="text.secondary">
-              Paiement à la livraison. Un administrateur vous appellera pour
-              confirmer votre commande.
+              {t("commande.notePaiement")}
             </Typography>
           </Box>
         </Grid>
         <Grid item xs={12} md={5}>
+          {/* Récapitulatif fixe sur desktop, devis de livraison avant confirmation */}
           <Box
             sx={{
               border: "1px solid #eee",
@@ -385,10 +397,12 @@ const Commande = () => {
               display: "flex",
               flexDirection: "column",
               gap: 1.5,
+              position: { md: "sticky" },
+              top: { md: 88 },
             }}
           >
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Votre commande
+              {t("commande.votreCommande")}
             </Typography>
             {articles.map((a) => (
               <Box
@@ -398,20 +412,20 @@ const Commande = () => {
                 <Typography>
                   {a.designation} × {a.quantite}
                 </Typography>
-                <Typography>{formaterPrix(a.prix * a.quantite)}</Typography>
+                <Typography>{formaterPrix(a.prix * a.quantite, locale)}</Typography>
               </Box>
             ))}
             <Divider />
             <Box sx={{ display: "flex", gap: 1 }}>
               <TextField
-                label="Code promo"
+                label={t("panier.codePromo")}
                 size="small"
                 fullWidth
                 value={codeSaisi}
                 onChange={(e) => setCodeSaisi(e.target.value)}
               />
               <Button variant="outlined" onClick={appliquerCode}>
-                Appliquer
+                {t("panier.appliquer")}
               </Button>
             </Box>
             {messagePromo && (
@@ -420,24 +434,24 @@ const Commande = () => {
               </Alert>
             )}
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography>Sous-total</Typography>
-              <Typography>{formaterPrix(sousTotal)}</Typography>
+              <Typography>{t("panier.sousTotal")}</Typography>
+              <Typography>{formaterPrix(sousTotal, locale)}</Typography>
             </Box>
             {reduction > 0 && (
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography>Réduction</Typography>
+                <Typography>{t("panier.reduction")}</Typography>
                 <Typography color="success.main">
-                  −{formaterPrix(reduction)}
+                  −{formaterPrix(reduction, locale)}
                 </Typography>
               </Box>
             )}
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography>Livraison</Typography>
+              <Typography>{t("panier.livraison")}</Typography>
               <Typography>
                 {formulaire.code_wilaya
                   ? frais?.disponible
-                    ? formaterPrix(frais.prix)
-                    : "Confirmés par téléphone"
+                    ? formaterPrix(frais.prix, locale)
+                    : t("panier.livraisonTel")
                   : "—"}
               </Typography>
             </Box>
@@ -449,13 +463,13 @@ const Commande = () => {
                 fontWeight: 700,
               }}
             >
-              <Typography variant="h6">Total estimé</Typography>
+              <Typography variant="h6">{t("commande.totalEstime")}</Typography>
               <Typography variant="h6" color="primary">
-                {formaterPrix(total)}
+                {formaterPrix(total, locale)}
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary">
-              Le total final est recalculé par le serveur à la confirmation.
+              {t("commande.totalRecalcule")}
             </Typography>
           </Box>
         </Grid>

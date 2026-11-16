@@ -4,11 +4,14 @@ export const getServerSideProps = async ({ res }) => {
   const base = (
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3002"
   ).replace(/\/$/, "");
-  const urls = [`${base}/`, `${base}/boutique`];
+  // Chaque page est listée en fr (sans préfixe) et en ar (/ar/...) :
+  // le slug produit ne change pas selon la langue.
+  const urls = [`${base}/`, `${base}/ar/`, `${base}/boutique`, `${base}/ar/boutique`];
   try {
     const donnees = await getProduits({ limit: 100 });
     for (const produit of donnees.produits) {
       urls.push(`${base}/produits/${produit.slug}`);
+      urls.push(`${base}/ar/produits/${produit.slug}`);
     }
   } catch (e) {
     urls.push(`${base}/produits`);

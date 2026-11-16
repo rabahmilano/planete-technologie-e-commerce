@@ -1,0 +1,42 @@
+/* Variables CSS de marque — miroir de src/lib/theme.js (COULEURS).
+   Utilisées par les rares styles hors MUI ; les composants MUI passent
+   par le thème, jamais par des couleurs ad hoc. */
+:root {
+  --ptech-primary: #9155fd;
+  --ptech-primary-dark: #6d28d9;
+  --ptech-navy: #0b1f3a;
+  --ptech-navy-dark: #071527;
+  --ptech-navy-light: #16324f;
+  --ptech-amber: #f59e0b;
+  --ptech-amber-dark: #b45309;
+  --ptech-trust: #16a34a;
+  --ptech-bg: #f7f8fa;
+  --ptech-text: #1f2937;
+  --ptech-text-secondary: #6b7280;
+  --ptech-border: #e5e7eb;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--ptech-bg);
+}
+
+/* Pastille blanche autour du logo : le logo est bleu nuit + rouge, il doit
+   rester lisible sur le header/footer bleu nuit. */
+.logo-chip {
+  background: #fff;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+/* Ne pas imposer de display aux <img> du logo : l'affichage
+   logo complet (desktop) / mini-logo (mobile) est piloté par MUI
+   (sx display responsive). Un `display: block` ici écraserait ce
+   pilotage par spécificité et afficherait les deux logos partout. */

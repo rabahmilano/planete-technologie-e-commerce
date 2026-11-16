@@ -1,21 +1,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Grid,
-  Typography,
-} from "@mui/material";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
-import PaymentIcon from "@mui/icons-material/Payment";
-import VerifiedIcon from "@mui/icons-material/Verified";
+import { Alert, Box, Button, Grid, Typography } from "@mui/material";
 import ProductCard from "src/components/ProductCard";
+import Atouts from "src/components/Atouts";
+import { SqueletteProduits } from "src/components/Squelettes";
 import { getFamilles, getProduits } from "src/lib/api";
+import { useTr } from "src/lib/i18n";
+import { nomFamille } from "src/lib/produit";
 
 const Accueil = () => {
+  const { t, locale } = useTr();
   const [familles, setFamilles] = useState([]);
   const [misEnAvant, setMisEnAvant] = useState([]);
   const [promos, setPromos] = useState([]);
@@ -35,17 +29,16 @@ const Accueil = () => {
         );
         setPromos(promosData.produits);
       })
-      .catch(() => setErreur("Impossible de charger la boutique."))
+      .catch(() => setErreur(t("commun.erreurChargement")))
       .finally(() => setChargement(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (chargement) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const TitreSection = ({ children }) => (
+    <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+      {children}
+    </Typography>
+  );
 
   return (
     <Box>
@@ -54,118 +47,104 @@ const Accueil = () => {
           {erreur}
         </Alert>
       )}
+
+      {/* Hero : bleu nuit -> primaire, proposition de valeur + CTA */}
       <Box
         sx={{
-          bgcolor: "primary.main",
+          background:
+            "linear-gradient(135deg, #0B1F3A 0%, #16324F 55%, #9155FD 130%)",
           color: "white",
-          borderRadius: 2,
+          borderRadius: 3,
           p: { xs: 3, sm: 5 },
           mb: 4,
         }}
       >
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-          Planète Tech
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 800 }}>
+          {t("hero.titre")}
         </Typography>
-        <Typography variant="h6" sx={{ mt: 1, opacity: 0.9 }}>
-          Cartes WiFi, répéteurs, SSD, accessoires — paiement à la livraison
-          dans les 58 wilayas.
+        <Typography variant="h6" sx={{ mt: 1, opacity: 0.9, fontWeight: 400 }}>
+          {t("hero.sousTitre")}
         </Typography>
-        <Button
-          variant="contained"
-          color="inherit"
-          sx={{ mt: 3, color: "primary.main" }}
-          href="/boutique"
-        >
-          Voir la boutique
-        </Button>
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mt: 3 }}>
+          <Link href="/boutique" passHref legacyBehavior>
+            <Button
+              component="a"
+              variant="contained"
+              color="secondary"
+              size="large"
+            >
+              {t("hero.cta")}
+            </Button>
+          </Link>
+        </Box>
+        <Typography variant="body2" sx={{ mt: 2, opacity: 0.8 }}>
+          {t("hero.confiance")}
+        </Typography>
       </Box>
 
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-        Catégories
-      </Typography>
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        {familles.map((famille) => (
-          <Grid item xs={6} sm={4} md={3} key={famille.id}>
-            <Button
-              fullWidth
-              variant="outlined"
-              href={`/boutique?famille=${famille.id}`}
-              sx={{ py: 2, textTransform: "none" }}
-            >
-              {famille.nom} ({famille.nb_produits})
-            </Button>
-          </Grid>
-        ))}
-        {familles.length === 0 && (
-          <Grid item xs={12}>
-            <Typography color="text.secondary">
-              Aucune catégorie pour le moment.
-            </Typography>
-          </Grid>
-        )}
-      </Grid>
-
-      {misEnAvant.length > 0 && (
+      {chargement ? (
+        <SqueletteProduits nombre={8} />
+      ) : (
         <>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-            Produits mis en avant
-          </Typography>
+          <TitreSection>{t("sections.categories")}</TitreSection>
           <Grid container spacing={2} sx={{ mb: 4 }}>
-            {misEnAvant.map((produit) => (
-              <Grid item xs={6} sm={4} md={3} key={produit.slug}>
-                <ProductCard produit={produit} />
+            {familles.map((famille) => (
+              <Grid item xs={6} sm={4} md={3} key={famille.id}>
+                <Link
+                  href={`/boutique?famille=${famille.id}`}
+                  passHref
+                  legacyBehavior
+                >
+                  <Button
+                    component="a"
+                    fullWidth
+                    variant="outlined"
+                    sx={{ py: 2, textTransform: "none", fontWeight: 600 }}
+                  >
+                    {nomFamille(famille, locale)} ({famille.nb_produits})
+                  </Button>
+                </Link>
               </Grid>
             ))}
+            {familles.length === 0 && (
+              <Grid item xs={12}>
+                <Typography color="text.secondary">
+                  {t("commun.aucuneCategorie")}
+                </Typography>
+              </Grid>
+            )}
           </Grid>
+
+          {misEnAvant.length > 0 && (
+            <>
+              <TitreSection>{t("sections.misEnAvant")}</TitreSection>
+              <Grid container spacing={2} sx={{ mb: 4 }}>
+                {misEnAvant.map((produit) => (
+                  <Grid item xs={6} sm={4} md={3} key={produit.slug}>
+                    <ProductCard produit={produit} />
+                  </Grid>
+                ))}
+              </Grid>
+            </>
+          )}
+
+          {promos.length > 0 && (
+            <>
+              <TitreSection>{t("sections.promos")}</TitreSection>
+              <Grid container spacing={2} sx={{ mb: 4 }}>
+                {promos.map((produit) => (
+                  <Grid item xs={6} sm={4} md={3} key={produit.slug}>
+                    <ProductCard produit={produit} />
+                  </Grid>
+                ))}
+              </Grid>
+            </>
+          )}
         </>
       )}
 
-      {promos.length > 0 && (
-        <>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-            Promotions du moment
-          </Typography>
-          <Grid container spacing={2} sx={{ mb: 4 }}>
-            {promos.map((produit) => (
-              <Grid item xs={6} sm={4} md={3} key={produit.slug}>
-                <ProductCard produit={produit} />
-              </Grid>
-            ))}
-          </Grid>
-        </>
-      )}
-
-      <Grid container spacing={2}>
-        {[
-          {
-            icone: <PaymentIcon fontSize="large" color="primary" />,
-            titre: "Paiement à la livraison",
-            texte: "Payez en espèces quand vous recevez votre commande.",
-          },
-          {
-            icone: <LocalShippingIcon fontSize="large" color="primary" />,
-            titre: "Livraison 58 wilayas",
-            texte: "À domicile ou au bureau, partout en Algérie.",
-          },
-          {
-            icone: <VerifiedIcon fontSize="large" color="primary" />,
-            titre: "Produits vérifiés",
-            texte: "Chaque produit est testé avant l'envoi.",
-          },
-        ].map((atout) => (
-          <Grid item xs={12} sm={4} key={atout.titre}>
-            <Box sx={{ textAlign: "center", p: 2 }}>
-              {atout.icone}
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 1 }}>
-                {atout.titre}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {atout.texte}
-              </Typography>
-            </Box>
-          </Grid>
-        ))}
-      </Grid>
+      <TitreSection>{t("sections.atouts")}</TitreSection>
+      <Atouts />
     </Box>
   );
 };

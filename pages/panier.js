@@ -18,8 +18,10 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { usePanier } from "src/context/CartContext";
 import { formaterPrix } from "src/lib/format";
 import { getTarif, getWilayas, verifierCode } from "src/lib/api";
+import { useTr } from "src/lib/i18n";
 
 const Panier = () => {
+  const { t, locale } = useTr();
   const {
     articles,
     changerQuantite,
@@ -62,14 +64,16 @@ const Panier = () => {
       if (resultat.valide) {
         setCodePromo({ code, montant_reduction: resultat.montant_reduction });
         setMessagePromo(
-          `Code appliqué : −${formaterPrix(resultat.montant_reduction)}.`,
+          t("panier.codeApplique", {
+            montant: formaterPrix(resultat.montant_reduction, locale),
+          }),
         );
       } else {
         setCodePromo(null);
-        setMessagePromo(resultat.message || "Code promo invalide.");
+        setMessagePromo(resultat.message || t("panier.codeInvalide"));
       }
     } catch (e) {
-      setMessagePromo("Impossible de vérifier ce code pour le moment.");
+      setMessagePromo(t("panier.codeErreur"));
     } finally {
       setChargementPromo(false);
     }
@@ -82,16 +86,18 @@ const Panier = () => {
   return (
     <Box>
       <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 3 }}>
-        Mon panier
+        {t("panier.titre")}
       </Typography>
       {articles.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 6 }}>
           <Typography color="text.secondary" sx={{ mb: 2 }}>
-            Votre panier est vide.
+            {t("panier.vide")}
           </Typography>
-          <Button variant="contained" href="/boutique">
-            Voir la boutique
-          </Button>
+          <Link href="/boutique" passHref legacyBehavior>
+            <Button component="a" variant="contained">
+              {t("commun.voirBoutique")}
+            </Button>
+          </Link>
         </Box>
       ) : (
         <Grid container spacing={3}>
@@ -153,7 +159,7 @@ const Panier = () => {
                     </Typography>
                   </Link>
                   <Typography color="primary" sx={{ fontWeight: 700 }}>
-                    {formaterPrix(article.prix)}
+                    {formaterPrix(article.prix, locale)}
                   </Typography>
                 </Box>
                 <TextField
@@ -161,18 +167,19 @@ const Panier = () => {
                   size="small"
                   sx={{ width: 80 }}
                   value={article.quantite}
+                  aria-label={t("produit.quantite")}
                   onChange={(e) =>
                     changerQuantite(article.slug, e.target.value)
                   }
                   inputProps={{ min: 1, max: 99 }}
                 />
-                <Typography sx={{ minWidth: 100, textAlign: "right" }}>
-                  {formaterPrix(article.prix * article.quantite)}
+                <Typography sx={{ minWidth: 100, textAlign: "end" }}>
+                  {formaterPrix(article.prix * article.quantite, locale)}
                 </Typography>
                 <IconButton
                   color="error"
                   onClick={() => retirer(article.slug)}
-                  aria-label="Retirer"
+                  aria-label={t("panier.retirer")}
                 >
                   <DeleteIcon />
                 </IconButton>
@@ -180,6 +187,7 @@ const Panier = () => {
             ))}
           </Grid>
           <Grid item xs={12} md={4}>
+            {/* Récapitulatif fixe sur desktop */}
             <Box
               sx={{
                 border: "1px solid #eee",
@@ -188,14 +196,16 @@ const Panier = () => {
                 display: "flex",
                 flexDirection: "column",
                 gap: 1.5,
+                position: { md: "sticky" },
+                top: { md: 88 },
               }}
             >
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Récapitulatif
+                {t("panier.recap")}
               </Typography>
               <Box sx={{ display: "flex", gap: 1 }}>
                 <TextField
-                  label="Code promo"
+                  label={t("panier.codePromo")}
                   size="small"
                   fullWidth
                   value={codeSaisi}
@@ -209,7 +219,7 @@ const Panier = () => {
                   onClick={appliquerCode}
                   disabled={chargementPromo}
                 >
-                  Appliquer
+                  {t("panier.appliquer")}
                 </Button>
               </Box>
               {messagePromo && (
@@ -219,19 +229,21 @@ const Panier = () => {
               )}
               {codePromo && (
                 <Button size="small" onClick={() => setCodePromo(null)}>
-                  Retirer le code {codePromo.code}
+                  {t("panier.retirerCode", { code: codePromo.code })}
                 </Button>
               )}
               <FormControl size="small" fullWidth>
-                <InputLabel id="wilaya-livraison-label">Wilaya de livraison</InputLabel>
+                <InputLabel id="wilaya-livraison-label">
+                  {t("panier.wilayaLivraison")}
+                </InputLabel>
                 <Select
                   labelId="wilaya-livraison-label"
                   id="wilaya-livraison"
-                  label="Wilaya de livraison"
+                  label={t("panier.wilayaLivraison")}
                   value={wilaya}
                   onChange={(e) => setWilaya(e.target.value)}
                 >
-                  <MenuItem value="">Choisir une wilaya</MenuItem>
+                  <MenuItem value="">{t("panier.choisirWilaya")}</MenuItem>
                   {wilayas.map((w) => (
                     <MenuItem key={w.code} value={w.code}>
                       {w.code} — {w.nom}
@@ -240,40 +252,42 @@ const Panier = () => {
                 </Select>
               </FormControl>
               <FormControl size="small" fullWidth>
-                <InputLabel id="type-livraison-label">Type de livraison</InputLabel>
+                <InputLabel id="type-livraison-label">
+                  {t("panier.typeLivraison")}
+                </InputLabel>
                 <Select
                   labelId="type-livraison-label"
                   id="type-livraison"
-                  label="Type de livraison"
+                  label={t("panier.typeLivraison")}
                   value={typeLivraison}
                   onChange={(e) => setTypeLivraison(e.target.value)}
                 >
-                  <MenuItem value="DOMICILE">À domicile</MenuItem>
-                  <MenuItem value="BUREAU">Au bureau</MenuItem>
+                  <MenuItem value="DOMICILE">{t("panier.domicile")}</MenuItem>
+                  <MenuItem value="BUREAU">{t("panier.bureau")}</MenuItem>
                 </Select>
               </FormControl>
               <Divider />
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography>Sous-total</Typography>
-                <Typography>{formaterPrix(sousTotal)}</Typography>
+                <Typography>{t("panier.sousTotal")}</Typography>
+                <Typography>{formaterPrix(sousTotal, locale)}</Typography>
               </Box>
               {reduction > 0 && (
                 <Box
                   sx={{ display: "flex", justifyContent: "space-between" }}
                 >
-                  <Typography>Réduction</Typography>
+                  <Typography>{t("panier.reduction")}</Typography>
                   <Typography color="success.main">
-                    −{formaterPrix(reduction)}
+                    −{formaterPrix(reduction, locale)}
                   </Typography>
                 </Box>
               )}
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography>Livraison</Typography>
+                <Typography>{t("panier.livraison")}</Typography>
                 <Typography>
                   {wilaya
                     ? frais?.disponible
-                      ? formaterPrix(frais.prix)
-                      : "Confirmés par téléphone"
+                      ? formaterPrix(frais.prix, locale)
+                      : t("panier.livraisonTel")
                     : "—"}
                 </Typography>
               </Box>
@@ -285,14 +299,16 @@ const Panier = () => {
                   fontWeight: 700,
                 }}
               >
-                <Typography variant="h6">Total</Typography>
+                <Typography variant="h6">{t("commun.total")}</Typography>
                 <Typography variant="h6" color="primary">
-                  {formaterPrix(total)}
+                  {formaterPrix(total, locale)}
                 </Typography>
               </Box>
-              <Button variant="contained" size="large" href="/commande">
-                Commander
-              </Button>
+              <Link href="/commande" passHref legacyBehavior>
+                <Button component="a" variant="contained" size="large">
+                  {t("panier.commander")}
+                </Button>
+              </Link>
             </Box>
           </Grid>
         </Grid>

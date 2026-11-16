@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import { urlImage } from "src/lib/api";
+import { traduire } from "src/lib/i18n";
 
 const CartContext = createContext(null);
 const CLE_STOCKAGE = "ptech-panier";
@@ -8,6 +10,7 @@ const CLE_STOCKAGE = "ptech-panier";
 export const usePanier = () => useContext(CartContext);
 
 export const PanierProvider = ({ children }) => {
+  const { locale } = useRouter();
   const [articles, setArticles] = useState([]);
   const [codePromo, setCodePromo] = useState(null);
   const [charge, setCharge] = useState(true);
@@ -36,7 +39,7 @@ export const PanierProvider = ({ children }) => {
 
   const ajouter = (produit, quantite = 1) => {
     if (!produit.en_stock) {
-      toast.error("Ce produit est en rupture de stock.");
+      toast.error(traduire(locale, "commun.ruptureStockToast"));
       return;
     }
     setArticles((precedents) => {
@@ -59,7 +62,7 @@ export const PanierProvider = ({ children }) => {
         },
       ];
     });
-    toast.success("Produit ajouté au panier.");
+    toast.success(traduire(locale, "commun.ajoutePanier"));
   };
 
   const changerQuantite = (slug, quantite) => {

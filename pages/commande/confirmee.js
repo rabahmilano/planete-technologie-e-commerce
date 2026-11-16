@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Alert,
   Box,
@@ -12,8 +13,17 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { formaterPrix } from "src/lib/format";
 import { getSuiviCommande } from "src/lib/api";
+import { traduire, useTr } from "src/lib/i18n";
+
+// Statuts backend -> libellés localisés (repli : valeur brute du backend).
+const libelleStatut = (statut, locale) => {
+  const cle = `statuts.${statut}`;
+  const libelle = traduire(locale, cle);
+  return libelle === cle ? statut : libelle;
+};
 
 const Confirmation = () => {
+  const { t, locale } = useTr();
   const [commande, setCommande] = useState(null);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState("");
@@ -27,7 +37,7 @@ const Confirmation = () => {
       const donnees = await getSuiviCommande(id, telephone);
       setCommande(donnees);
     } catch (e) {
-      setErreur("Commande introuvable. Vérifiez le numéro et le téléphone.");
+      setErreur(t("confirmation.introuvable"));
       setCommande(null);
     } finally {
       setChargement(false);
@@ -48,6 +58,7 @@ const Confirmation = () => {
       setErreur("");
     }
     setChargement(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -55,10 +66,10 @@ const Confirmation = () => {
       <Box sx={{ textAlign: "center", py: 3 }}>
         <CheckCircleIcon color="success" sx={{ fontSize: 64 }} />
         <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mt: 1 }}>
-          Merci pour votre commande !
+          {t("confirmation.merci")}
         </Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>
-          Un administrateur va vous appeler pour confirmer votre commande.
+          {t("confirmation.appel")}
         </Typography>
       </Box>
 
@@ -72,19 +83,29 @@ const Confirmation = () => {
         >
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Commande #{commande.id_cmd_web}
+              {t("confirmation.commande", { id: commande.id_cmd_web })}
             </Typography>
-            <Chip label={commande.statut_commande} color="primary" />
+            <Chip
+              label={libelleStatut(commande.statut_commande, locale)}
+              color="primary"
+            />
           </Box>
-          <Typography>Client : {commande.nom_client}</Typography>
-          <Typography>Téléphone : {commande.telephone}</Typography>
           <Typography>
-            Livraison : {commande.wilaya} / {commande.commune} —{" "}
-            {commande.type_livraison === "BUREAU" ? "Au bureau" : "À domicile"}
+            {t("confirmation.client")} : {commande.nom_client}
+          </Typography>
+          <Typography>
+            {t("confirmation.telephone")} : {commande.telephone}
+          </Typography>
+          <Typography>
+            {t("confirmation.livraison")} : {commande.wilaya} /{" "}
+            {commande.commune} —{" "}
+            {commande.type_livraison === "BUREAU"
+              ? t("panier.bureau")
+              : t("panier.domicile")}
           </Typography>
           {commande.code_tracking && (
             <Typography sx={{ fontWeight: 700, mt: 1 }}>
-              Suivi du colis : {commande.code_tracking}
+              {t("confirmation.suiviColis")} : {commande.code_tracking}
             </Typography>
           )}
           <Divider sx={{ my: 2 }} />
@@ -99,29 +120,30 @@ const Confirmation = () => {
               <Typography>
                 {formaterPrix(
                   parseFloat(ligne.prix_unitaire_facture) * ligne.quantite,
+                  locale,
                 )}
               </Typography>
             </Box>
           ))}
           <Divider sx={{ my: 2 }} />
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Typography>Produits</Typography>
+            <Typography>{t("confirmation.produits")}</Typography>
             <Typography>
-              {formaterPrix(parseFloat(commande.montant_produits))}
+              {formaterPrix(parseFloat(commande.montant_produits), locale)}
             </Typography>
           </Box>
           {parseFloat(commande.montant_reduction) > 0 && (
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography>Réduction</Typography>
+              <Typography>{t("confirmation.reduction")}</Typography>
               <Typography color="success.main">
-                −{formaterPrix(parseFloat(commande.montant_reduction))}
+                −{formaterPrix(parseFloat(commande.montant_reduction), locale)}
               </Typography>
             </Box>
           )}
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Typography>Livraison</Typography>
+            <Typography>{t("confirmation.livraisonLigne")}</Typography>
             <Typography>
-              {formaterPrix(parseFloat(commande.frais_livraison))}
+              {formaterPrix(parseFloat(commande.frais_livraison), locale)}
             </Typography>
           </Box>
           <Divider sx={{ my: 2 }} />
@@ -132,17 +154,19 @@ const Confirmation = () => {
               fontWeight: 700,
             }}
           >
-            <Typography variant="h6">Total</Typography>
+            <Typography variant="h6">{t("confirmation.total")}</Typography>
             <Typography variant="h6" color="primary">
-              {formaterPrix(parseFloat(commande.montant_total_final))}
+              {formaterPrix(parseFloat(commande.montant_total_final), locale)}
             </Typography>
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Paiement à la livraison.
+            {t("confirmation.paiementLivraison")}
           </Typography>
-          <Button variant="contained" href="/boutique" sx={{ mt: 3 }}>
-            Continuer mes achats
-          </Button>
+          <Link href="/boutique" passHref legacyBehavior>
+            <Button component="a" variant="contained" sx={{ mt: 3 }}>
+              {t("commun.continuerAchats")}
+            </Button>
+          </Link>
         </Box>
       ) : (
         <Box
@@ -156,25 +180,27 @@ const Confirmation = () => {
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Suivre ma commande
+            {t("confirmation.suivreTitre")}
           </Typography>
           {erreur && <Alert severity="warning">{erreur}</Alert>}
           <TextField
-            label="Numéro de commande"
+            label={t("confirmation.numeroCommande")}
             value={idSaisi}
             onChange={(e) => setIdSaisi(e.target.value)}
+            inputProps={{ inputMode: "numeric", dir: "ltr" }}
           />
           <TextField
-            label="Téléphone"
+            label={t("confirmation.telephoneSuivi")}
             value={telephoneSaisi}
             onChange={(e) => setTelephoneSaisi(e.target.value)}
             placeholder="0550123456"
+            inputProps={{ inputMode: "tel", dir: "ltr" }}
           />
           <Button
             variant="contained"
             onClick={() => charger(idSaisi, telephoneSaisi)}
           >
-            Voir ma commande
+            {t("confirmation.voirCommande")}
           </Button>
         </Box>
       )}
