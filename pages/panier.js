@@ -223,8 +223,10 @@ const Panier = () => {
                 </Button>
               )}
               <FormControl size="small" fullWidth>
-                <InputLabel>Wilaya de livraison</InputLabel>
+                <InputLabel id="wilaya-livraison-label">Wilaya de livraison</InputLabel>
                 <Select
+                  labelId="wilaya-livraison-label"
+                  id="wilaya-livraison"
                   label="Wilaya de livraison"
                   value={wilaya}
                   onChange={(e) => setWilaya(e.target.value)}
@@ -238,8 +240,10 @@ const Panier = () => {
                 </Select>
               </FormControl>
               <FormControl size="small" fullWidth>
-                <InputLabel>Type de livraison</InputLabel>
+                <InputLabel id="type-livraison-label">Type de livraison</InputLabel>
                 <Select
+                  labelId="type-livraison-label"
+                  id="type-livraison"
                   label="Type de livraison"
                   value={typeLivraison}
                   onChange={(e) => setTypeLivraison(e.target.value)}

@@ -5,6 +5,16 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+export const urlImage = (url) => {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  const origine = (process.env.NEXT_PUBLIC_API_URL || "").replace(
+    /\/api\/?$/,
+    "",
+  );
+  return origine ? `${origine}${url}` : url;
+};
+
 export const getProduits = (params) =>
   api.get("/produits", { params }).then((r) => r.data);
 

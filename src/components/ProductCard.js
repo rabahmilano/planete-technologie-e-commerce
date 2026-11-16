@@ -9,6 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { formaterPrix } from "src/lib/format";
+import { urlImage } from "src/lib/api";
 import { usePanier } from "src/context/CartContext";
 
 const ProductCard = ({ produit }) => {
@@ -22,7 +23,7 @@ const ProductCard = ({ produit }) => {
             <CardMedia
               component="img"
               height="180"
-              image={produit.image_principale}
+              image={urlImage(produit.image_principale)}
               alt={produit.designation}
               onError={(e) => {
                 e.target.style.display = "none";

@@ -263,8 +263,10 @@ const Commande = () => {
               placeholder="0550123456"
             />
             <FormControl fullWidth required>
-              <InputLabel>Wilaya</InputLabel>
+              <InputLabel id="wilaya-label">Wilaya</InputLabel>
               <Select
+                labelId="wilaya-label"
+                id="wilaya"
                 label="Wilaya"
                 value={formulaire.code_wilaya}
                 onChange={changerWilaya}
@@ -278,8 +280,10 @@ const Commande = () => {
             </FormControl>
             {communesDisponibles ? (
               <FormControl fullWidth required>
-                <InputLabel>Commune</InputLabel>
+                <InputLabel id="commune-label">Commune</InputLabel>
                 <Select
+                  labelId="commune-label"
+                  id="commune"
                   label="Commune"
                   value={formulaire.communeId}
                   onChange={changerCommune}
@@ -329,8 +333,10 @@ const Commande = () => {
             {formulaire.type_livraison === "BUREAU" &&
               (bureauxDisponibles ? (
                 <FormControl fullWidth required>
-                  <InputLabel>Bureau de livraison</InputLabel>
+                  <InputLabel id="bureau-label">Bureau de livraison</InputLabel>
                   <Select
+                    labelId="bureau-label"
+                    id="bureau"
                     label="Bureau de livraison"
                     value={formulaire.bureau_livraison}
                     onChange={changer("bureau_livraison")}

@@ -102,8 +102,10 @@ const Boutique = () => {
               }}
             />
             <FormControl size="small" fullWidth>
-              <InputLabel>Catégorie</InputLabel>
+              <InputLabel id="categorie-label">Catégorie</InputLabel>
               <Select
+                labelId="categorie-label"
+                id="categorie"
                 label="Catégorie"
                 value={filtres.famille || ""}
                 onChange={(e) =>
@@ -181,8 +183,10 @@ const Boutique = () => {
               {total} produit(s)
             </Typography>
             <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel>Trier par</InputLabel>
+              <InputLabel id="tri-label">Trier par</InputLabel>
               <Select
+                labelId="tri-label"
+                id="tri"
                 label="Trier par"
                 value={filtres.tri || "pertinence"}
                 onChange={(e) => appliquerFiltres({ tri: e.target.value })}

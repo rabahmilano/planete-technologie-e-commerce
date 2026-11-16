@@ -15,7 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import ProductCard from "src/components/ProductCard";
-import { getProduit } from "src/lib/api";
+import { getProduit, urlImage } from "src/lib/api";
 import { formaterPrix } from "src/lib/format";
 import { usePanier } from "src/context/CartContext";
 
@@ -33,9 +33,12 @@ const PageProduit = ({ produit }) => {
   const [quantite, setQuantite] = useState(1);
   const [imageChoisie, setImageChoisie] = useState(0);
   const images = produit.images?.length
-    ? produit.images
+    ? produit.images.map((image) => ({
+        ...image,
+        url: urlImage(image.url),
+      }))
     : produit.image_principale
-      ? [{ url: produit.image_principale, est_principale: true }]
+      ? [{ url: urlImage(produit.image_principale), est_principale: true }]
       : [];
 
   return (

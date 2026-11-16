@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { urlImage } from "src/lib/api";
 
 const CartContext = createContext(null);
 const CLE_STOCKAGE = "ptech-panier";
@@ -53,7 +54,7 @@ export const PanierProvider = ({ children }) => {
           slug: produit.slug,
           designation: produit.designation,
           prix: produit.prix_effectif,
-          image: produit.image_principale,
+          image: urlImage(produit.image_principale),
           quantite,
         },
       ];
