@@ -24,10 +24,30 @@ const Accueil = () => {
     ])
       .then(([famillesData, avantData, promosData]) => {
         setFamilles(famillesData);
-        setMisEnAvant(
-          avantData.produits.filter((p) => p.est_mis_en_avant).slice(0, 8),
-        );
-        setPromos(promosData.produits);
+        // Déduplication : un produit en promo ne se répète pas dans
+        // « Mis en avant ». Les deux sections ne sont séparées que si
+        // chacune a au moins 3 produits distincts ; sinon une seule
+        // section fusionnée (les badges Promo restent visibles sur les
+        // cartes).
+        const promosUniques = promosData.produits;
+        const slugsPromos = new Set(promosUniques.map((p) => p.slug));
+        const avantUniques = avantData.produits
+          .filter((p) => p.est_mis_en_avant)
+          .filter((p) => !slugsPromos.has(p.slug))
+          .slice(0, 8);
+        if (avantUniques.length >= 3 && promosUniques.length >= 3) {
+          setMisEnAvant(avantUniques);
+          setPromos(promosUniques);
+        } else {
+          const fusion = [
+            ...promosUniques,
+            ...avantUniques.filter(
+              (p) => !promosUniques.some((q) => q.slug === p.slug),
+            ),
+          ];
+          setMisEnAvant(fusion);
+          setPromos([]);
+        }
       })
       .catch(() => setErreur(t("commun.erreurChargement")))
       .finally(() => setChargement(false));

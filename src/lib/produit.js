@@ -1,19 +1,19 @@
-import { DESCRIPTIONS_PRODUITS, NOMS_FAMILLES } from "src/lib/contenu";
+import { NOMS_FAMILLES } from "src/lib/contenu";
 
 // Helpers défensifs pour les champs bilingues et le stock.
-// Les descriptions et les noms de familles bilingues vivent dans le repo
-// boutique (src/lib/contenu.js) : l'API publique ne les renvoie pas.
-// La description de l'API, si elle existe un jour, sert de repli.
+// Les descriptions produits vivent dans la base (description /
+// description_ar, écrites côté dashboard) et sont renvoyées par l'API
+// publique. Les noms de familles bilingues vivent dans le repo boutique
+// (src/lib/contenu.js), keyés par slug.
 
-// Description dans la langue active : contenu boutique d'abord, repli sur
-// le français si l'arabe est absent, puis sur la description de l'API.
+// Description dans la langue active : arabe de la base, repli sur le
+// français si l'arabe est absent.
 export const descriptionProduit = (produit, locale) => {
   if (!produit) return "";
-  const contenu = DESCRIPTIONS_PRODUITS[produit.slug];
   if (locale === "ar") {
-    return contenu?.ar || contenu?.fr || produit.description || "";
+    return produit.description_ar || produit.description || "";
   }
-  return contenu?.fr || produit.description || "";
+  return produit.description || "";
 };
 
 // Nom de famille bilingue : contenu boutique keyé par slug, repli sur le

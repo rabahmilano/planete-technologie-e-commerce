@@ -1,4 +1,3 @@
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
@@ -9,18 +8,16 @@ import {
   Container,
   Grid,
   IconButton,
-  InputAdornment,
-  TextField,
   Toolbar,
   Typography,
 } from "@mui/material";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import SearchIcon from "@mui/icons-material/Search";
 import { usePanier } from "src/context/CartContext";
 import { useTr } from "src/lib/i18n";
 import { urlWhatsApp } from "src/lib/contact";
 import SelecteurLangue from "src/components/SelecteurLangue";
 import BarrePanierMobile from "src/components/BarrePanierMobile";
+import Recherche from "src/components/Recherche";
 
 // Le logo est bleu nuit + rouge : sur le header bleu nuit, il est affiché
 // dans une pastille blanche (.logo-chip) pour rester lisible.
@@ -53,39 +50,6 @@ const Layout = ({ children }) => {
   const { nbArticles } = usePanier();
   const router = useRouter();
   const { t } = useTr();
-  const [recherche, setRecherche] = useState("");
-
-  // router.push conserve la locale courante : la recherche reste en FR/AR.
-  const lancerRecherche = (e) => {
-    e.preventDefault();
-    router.push({
-      pathname: "/boutique",
-      query: recherche.trim() ? { recherche: recherche.trim() } : {},
-    });
-  };
-
-  const champRecherche = (
-    <TextField
-      size="small"
-      fullWidth
-      placeholder={t("commun.rechercherProduit")}
-      value={recherche}
-      onChange={(e) => setRecherche(e.target.value)}
-      aria-label={t("commun.rechercher")}
-      sx={{
-        bgcolor: "#FFFFFF",
-        borderRadius: 2,
-        "& .MuiOutlinedInput-root": { borderRadius: 2 },
-      }}
-      InputProps={{
-        endAdornment: (
-          <InputAdornment position="end">
-            <SearchIcon />
-          </InputAdornment>
-        ),
-      }}
-    />
-  );
 
   // Barre panier mobile masquée sur le panier et la commande.
   const sansBarrePanier =
@@ -94,16 +58,16 @@ const Layout = ({ children }) => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <AppBar position="sticky" elevation={0} sx={{ bgcolor: "navy.main" }}>
-        <Toolbar sx={{ gap: { xs: 1, sm: 2 }, minHeight: { xs: 60, sm: 64 } }}>
+        <Toolbar
+          sx={{
+            gap: { xs: 1, sm: 2 },
+            minHeight: { xs: 60, sm: 64 },
+            flexWrap: "wrap",
+          }}
+        >
           <LogoBoutique />
-          <Box
-            component="form"
-            onSubmit={lancerRecherche}
-            sx={{ flexGrow: 1, display: { xs: "none", sm: "block" } }}
-          >
-            {champRecherche}
-          </Box>
-          <Box sx={{ flexGrow: 1, display: { sm: "none" } }} />
+          <Recherche />
+          <Box sx={{ flexGrow: 1 }} />
           <Link href="/boutique" passHref legacyBehavior>
             <Button
               component="a"
@@ -125,18 +89,6 @@ const Layout = ({ children }) => {
             </IconButton>
           </Link>
         </Toolbar>
-        {/* Recherche sur une 2e ligne en mobile */}
-        <Box
-          component="form"
-          onSubmit={lancerRecherche}
-          sx={{
-            display: { xs: "block", sm: "none" },
-            px: 2,
-            pb: 1.5,
-          }}
-        >
-          {champRecherche}
-        </Box>
       </AppBar>
 
       <Container
