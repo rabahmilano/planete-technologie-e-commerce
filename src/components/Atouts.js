@@ -7,9 +7,11 @@ import { useTr } from "src/lib/i18n";
 import { urlWhatsApp } from "src/lib/contact";
 
 // Badges de confiance (aucune donnée inventée : paiement à la livraison,
-// 58 wilayas, produits vérifiés avant envoi, contact WhatsApp en repli).
+// 58 wilayas, produits vérifiés avant envoi, contact WhatsApp en repli —
+// carte masquée si aucun numéro WhatsApp n'est configuré, jamais de lien mort).
 const Atouts = () => {
   const { t } = useTr();
+  const lienWhatsApp = urlWhatsApp();
   const atouts = [
     {
       icone: <PaymentIcon fontSize="large" color="primary" />,
@@ -26,7 +28,9 @@ const Atouts = () => {
       titre: t("atouts.verifieTitre"),
       texte: t("atouts.verifieTexte"),
     },
-    {
+  ];
+  if (lienWhatsApp) {
+    atouts.push({
       icone: <WhatsAppIcon fontSize="large" color="success" />,
       titre: t("atouts.whatsappTitre"),
       texte: t("atouts.whatsappTexte"),
@@ -35,7 +39,7 @@ const Atouts = () => {
           variant="outlined"
           size="small"
           color="success"
-          href={urlWhatsApp()}
+          href={lienWhatsApp}
           target="_blank"
           rel="noopener noreferrer"
           sx={{ mt: 1 }}
@@ -43,13 +47,13 @@ const Atouts = () => {
           {t("atouts.whatsappCta")}
         </Button>
       ),
-    },
-  ];
+    });
+  }
 
   return (
     <Grid container spacing={2}>
       {atouts.map((atout) => (
-        <Grid item xs={6} md={3} key={atout.titre}>
+        <Grid item xs={6} md={lienWhatsApp ? 3 : 4} key={atout.titre}>
           <Box
             sx={{
               textAlign: "center",
@@ -65,7 +69,9 @@ const Atouts = () => {
             }}
           >
             {atout.icone}
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 1 }}>
+            {/* Étiquette de badge, pas un titre : <p> pour garder l'ordre
+                séquentiel des titres (h1 → h2 sans saut). */}
+            <Typography variant="subtitle1" component="p" sx={{ fontWeight: 700, mt: 1 }}>
               {atout.titre}
             </Typography>
             <Typography variant="body2" color="text.secondary">

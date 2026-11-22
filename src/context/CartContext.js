@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import { urlImage } from "src/lib/api";
 import { traduire } from "src/lib/i18n";
+import { nomProduit } from "src/lib/produit";
 
 const CartContext = createContext(null);
 const CLE_STOCKAGE = "ptech-panier";
@@ -55,14 +56,23 @@ export const PanierProvider = ({ children }) => {
         ...precedents,
         {
           slug: produit.slug,
-          designation: produit.designation,
+          designation: nomProduit(produit),
           prix: produit.prix_effectif,
           image: urlImage(produit.image_principale),
           quantite,
         },
       ];
     });
-    toast.success(traduire(locale, "commun.ajoutePanier"));
+    // Décision n°7 : toast sur mobile, tiroir « ajout au panier » sur
+    // desktop (la barre 900 px = breakpoint md MUI).
+    const mobile = typeof window !== "undefined" && window.innerWidth < 900;
+    if (mobile) {
+      toast.success(traduire(locale, "commun.ajoutePanier"));
+    } else if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("ptech-ajout-panier", { detail: { slug: produit.slug } }),
+      );
+    }
   };
 
   const changerQuantite = (slug, quantite) => {

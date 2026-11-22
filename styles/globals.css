@@ -9,15 +9,32 @@
   --ptech-navy-light: #16324f;
   --ptech-amber: #f59e0b;
   --ptech-amber-dark: #b45309;
+  --ptech-amber-light: #fde68a;
   --ptech-trust: #16a34a;
   --ptech-bg: #f7f8fa;
   --ptech-text: #1f2937;
-  --ptech-text-secondary: #6b7280;
+  --ptech-text-secondary: #475569;
   --ptech-border: #e5e7eb;
 }
 
 html {
   scroll-behavior: smooth;
+}
+
+/* Respect de prefers-reduced-motion : les micro-interactions de moins de
+   300 ms (fondus, glissements) sont neutralisées ; le défilement fluide
+   aussi. Aucune animation essentielle n'existe : tout reste fonctionnel. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 body {

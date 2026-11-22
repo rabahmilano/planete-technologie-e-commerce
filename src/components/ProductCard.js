@@ -1,4 +1,3 @@
-import { useState } from "react";
 import Link from "next/link";
 import {
   Box,
@@ -8,19 +7,48 @@ import {
   Chip,
   Typography,
 } from "@mui/material";
-import ImageSecurisee from "src/components/ImageSecurisee";
+import ImageProduit from "src/components/ImageProduit";
 import { formaterPrix } from "src/lib/format";
 import { urlImage } from "src/lib/api";
 import { usePanier } from "src/context/CartContext";
 import { useTr } from "src/lib/i18n";
-import { stockFaible, stockNumerique } from "src/lib/produit";
+import { nomProduit, stockFaible, stockNumerique } from "src/lib/produit";
+import { JETONS } from "src/lib/theme";
 
+// Anatomie fixe d'une carte produit (§3.3 du cahier des charges) :
+// photo 1:1 avec AU PLUS UN badge (remise calculée, sinon « Promo ») ;
+// rupture = photo estompée + texte, jamais une pile de chips ; nom 2 lignes ;
+// prix + prix barré + remise ; indice de paliers réels ; CTA ambre pleine
+// largeur mobile. Pas d'étoiles, pas de frais inventés : seules les données
+// réelles de l'API s'affichent.
 const ProductCard = ({ produit }) => {
   const { ajouter } = usePanier();
   const { t, locale } = useTr();
-  // Image indisponible (ex. fichier absent côté backend) : pastille 📦
-  // au lieu d'un cadre vide.
-  const [imageKO, setImageKO] = useState(false);
+
+  const remise =
+    produit.prix_barre && produit.prix_effectif < produit.prix_barre
+      ? Math.round(
+          ((produit.prix_barre - produit.prix_effectif) / produit.prix_barre) *
+            100,
+        )
+      : null;
+
+  // Paliers de quantité réels : on signale le premier palier au-delà de 1.
+  const palierSuivant = (produit.paliers || []).find(
+    (palier) => palier.quantite_min > 1,
+  );
+  const horsStock = !produit.en_stock;
+  const presqueEpuise = produit.en_stock && stockFaible(produit);
+
+  // Nom accessible du lien photo : les textes VISIBLEMENT présents dans le
+  // lien (badge remise, overlay rupture) doivent s'y retrouver (WCAG 2.5.3).
+  const extrasLien = [
+    horsStock ? t("commun.ruptureStock") : null,
+    remise !== null ? `−${remise} %` : produit.promo_active && !horsStock ? t("commun.promo") : null,
+  ].filter(Boolean);
+  const nomLien = extrasLien.length
+    ? `${nomProduit(produit)} — ${extrasLien.join(" — ")}`
+    : nomProduit(produit);
 
   return (
     <Card
@@ -28,37 +56,90 @@ const ProductCard = ({ produit }) => {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        transition: "transform 0.15s ease, box-shadow 0.15s ease",
-        "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: "0 6px 20px rgba(11,31,58,0.14)",
-        },
+        transition: "box-shadow 150ms ease-out",
+        "&:hover": { boxShadow: "0 6px 20px rgba(11,31,58,0.14)" },
       }}
     >
       <Link href={`/produits/${produit.slug}`} passHref legacyBehavior>
-        <Box component="a" sx={{ textDecoration: "none" }}>
-          {produit.image_principale && !imageKO ? (
-            <ImageSecurisee
-              src={urlImage(produit.image_principale)}
-              alt={produit.designation}
-              sx={{ height: 180, width: "100%", objectFit: "cover", display: "block" }}
-              onErreur={() => setImageKO(true)}
-            />
-          ) : (
-            <Box
+        <Box
+          component="a"
+          aria-label={nomLien}
+          sx={{ textDecoration: "none", display: "block" }}
+        >
+          <Box sx={{ position: "relative" }}>
+            <ImageProduit
+              src={produit.image_principale ? urlImage(produit.image_principale) : null}
+              alt=""
+              ratio={1}
+              sizes="(max-width: 600px) 46vw, (max-width: 900px) 31vw, 280px"
               sx={{
-                height: 180,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                bgcolor: "grey.200",
-                color: "grey.600",
-                fontSize: 48,
+                bgcolor: "background.paper",
+                borderBottom: "1px solid",
+                borderColor: "divider",
+                filter: horsStock ? "grayscale(1)" : undefined,
+                opacity: horsStock ? 0.55 : 1,
+                transition: "opacity 200ms ease-out",
               }}
-            >
-              📦
-            </Box>
-          )}
+              styleImage={{ objectFit: "contain" }}
+            />
+            {/* Un seul badge sur la photo : la remise réelle, sinon « Promo ». */}
+            {remise !== null && !horsStock && (
+              <Chip
+                label={`−${remise} %`}
+                size="small"
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  insetInlineStart: 8,
+                  bgcolor: JETONS.promo.fond,
+                  color: JETONS.promo.texte,
+                  fontWeight: 700,
+                }}
+              />
+            )}
+            {remise === null && produit.promo_active && !horsStock && (
+              <Chip
+                label={t("commun.promo")}
+                size="small"
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  insetInlineStart: 8,
+                  bgcolor: JETONS.promo.fond,
+                  color: JETONS.promo.texte,
+                  fontWeight: 700,
+                }}
+              />
+            )}
+            {horsStock && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  pointerEvents: "none",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    bgcolor: "background.paper",
+                    color: "text.primary",
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  {t("commun.ruptureStock")}
+                </Typography>
+              </Box>
+            )}
+          </Box>
         </Box>
       </Link>
       <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
@@ -77,32 +158,16 @@ const ProductCard = ({ produit }) => {
               minHeight: 48,
             }}
           >
-            {produit.designation}
+            {nomProduit(produit)}
           </Typography>
         </Link>
-        <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", my: 1 }}>
-          {produit.promo_active && (
-            <Chip label={t("commun.promo")} color="secondary" size="small" />
-          )}
-          {!produit.en_stock && (
-            <Chip label={t("commun.ruptureStock")} size="small" />
-          )}
-          {produit.est_mis_en_avant && (
-            <Chip label={t("commun.misEnAvant")} color="primary" size="small" />
-          )}
-          {stockFaible(produit) && (
-            <Chip
-              label={t("produit.plusQue", { n: stockNumerique(produit) })}
-              color="error"
-              size="small"
-            />
-          )}
-        </Box>
-        <Box sx={{ mt: "auto" }}>
-          <Typography variant="h6" color="primary" sx={{ fontWeight: 700 }}>
+        <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, mt: 0.5, flexWrap: "wrap" }}>
+          {/* Prix : la plus grande valeur numérique de la carte ; chiffres
+              tabulaires (variante `price` du thème). */}
+          <Typography variant="price" component="p" color="primary">
             {formaterPrix(produit.prix_effectif, locale)}
           </Typography>
-          {produit.prix_barre && (
+          {produit.prix_barre && produit.prix_effectif < produit.prix_barre && (
             <Typography
               variant="body2"
               color="text.secondary"
@@ -111,16 +176,28 @@ const ProductCard = ({ produit }) => {
               {formaterPrix(produit.prix_barre, locale)}
             </Typography>
           )}
+        </Box>
+        {/* Paliers de quantité réels uniquement ; indicateur discret. */}
+        {palierSuivant && (
+          <Typography variant="caption" color="text.secondary">
+            {t("produit.aPartirDe")} {palierSuivant.quantite_min}{" "}
+            {t("produit.pieces")} · {formaterPrix(palierSuivant.prix_unitaire, locale)}
+          </Typography>
+        )}
+        {presqueEpuise && (
+          <Typography variant="caption" color="error">
+            {t("produit.plusQue", { n: stockNumerique(produit) })}
+          </Typography>
+        )}
+        <Box sx={{ mt: "auto", pt: 1 }}>
           <Button
             variant="contained"
+            color="secondary"
             fullWidth
-            sx={{ mt: 1 }}
-            disabled={!produit.en_stock}
+            disabled={horsStock}
             onClick={() => ajouter(produit, 1)}
           >
-            {produit.en_stock
-              ? t("commun.ajouterPanier")
-              : t("commun.ruptureStock")}
+            {horsStock ? t("commun.ruptureStock") : t("commun.ajouterPanier")}
           </Button>
         </Box>
       </CardContent>

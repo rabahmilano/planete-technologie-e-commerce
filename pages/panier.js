@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  Alert,
   Box,
   Button,
   Divider,
@@ -11,13 +10,16 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  TextField,
   Typography,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ImageProduit from "src/components/ImageProduit";
+import StepperQuantite from "src/components/StepperQuantite";
+import CodePromo from "src/components/CodePromo";
+import ProductCard from "src/components/ProductCard";
 import { usePanier } from "src/context/CartContext";
 import { formaterPrix } from "src/lib/format";
-import { getTarif, getWilayas, verifierCode } from "src/lib/api";
+import { getProduit, getTarif, getWilayas } from "src/lib/api";
 import { useTr } from "src/lib/i18n";
 
 const Panier = () => {
@@ -28,15 +30,12 @@ const Panier = () => {
     retirer,
     sousTotal,
     codePromo,
-    setCodePromo,
   } = usePanier();
   const [wilayas, setWilayas] = useState([]);
   const [wilaya, setWilaya] = useState("");
   const [typeLivraison, setTypeLivraison] = useState("DOMICILE");
   const [frais, setFrais] = useState(null);
-  const [codeSaisi, setCodeSaisi] = useState("");
-  const [messagePromo, setMessagePromo] = useState("");
-  const [chargementPromo, setChargementPromo] = useState(false);
+  const [lies, setLies] = useState([]);
 
   useEffect(() => {
     getWilayas()
@@ -54,38 +53,49 @@ const Panier = () => {
       .catch(() => setFrais(null));
   }, [wilaya, typeLivraison]);
 
-  const appliquerCode = async () => {
-    const code = codeSaisi.trim().toUpperCase();
-    if (!code) return;
-    setChargementPromo(true);
-    setMessagePromo("");
-    try {
-      const resultat = await verifierCode(code, sousTotal);
-      if (resultat.valide) {
-        setCodePromo({ code, montant_reduction: resultat.montant_reduction });
-        setMessagePromo(
-          t("panier.codeApplique", {
-            montant: formaterPrix(resultat.montant_reduction, locale),
-          }),
-        );
-      } else {
-        setCodePromo(null);
-        setMessagePromo(resultat.message || t("panier.codeInvalide"));
-      }
-    } catch (e) {
-      setMessagePromo(t("panier.codeErreur"));
-    } finally {
-      setChargementPromo(false);
+  // Cross-sell : produits liés RÉELS du premier article du panier, sous le
+  // CTA de commande seulement (jamais de suggestion inventée).
+  useEffect(() => {
+    const premier = articles[0]?.slug;
+    if (!premier) {
+      setLies([]);
+      return;
     }
+    getProduit(premier)
+      .then((p) => setLies((p.produits_lies || []).slice(0, 4)))
+      .catch(() => setLies([]));
+  }, [articles[0]?.slug]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Retrait : focus renvoyé sur la ligne suivante (ou le titre du panier),
+  // jamais perdu sur <body>. Le délai laisse React committer le nouveau
+  // rendu avant de chercher la rangée.
+  const retenirFocus = (index) => {
+    setTimeout(() => {
+      const rangees = document.querySelectorAll("[data-rangee-panier]");
+      const suivante = rangees[Math.min(index, rangees.length - 1)];
+      if (suivante) {
+        const bouton = suivante.querySelector("button");
+        bouton?.focus();
+      } else {
+        document.getElementById("titre-panier")?.focus();
+      }
+    }, 60);
   };
 
   const reduction = codePromo ? codePromo.montant_reduction : 0;
-  const fraisLivraison = frais?.disponible ? frais.prix : 0;
-  const total = Math.max(0, sousTotal - reduction + fraisLivraison);
+  const fraisLivraison = frais?.disponible ? frais.prix : null;
+  const totalAvecLivraison = Math.max(0, sousTotal - reduction + (fraisLivraison || 0));
+  const totalHorsLivraison = Math.max(0, sousTotal - reduction);
 
   return (
     <Box>
-      <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 3 }}>
+      <Typography
+        id="titre-panier"
+        tabIndex={-1}
+        variant="h1"
+        component="h1"
+        sx={{ mb: 3, "&:focus": { outline: "none" } }}
+      >
         {t("panier.titre")}
       </Typography>
       {articles.length === 0 ? (
@@ -102,46 +112,30 @@ const Panier = () => {
       ) : (
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
-            {articles.map((article) => (
+            {articles.map((article, index) => (
               <Box
                 key={article.slug}
+                data-rangee-panier
                 sx={{
                   display: "flex",
                   gap: 2,
                   alignItems: "center",
                   py: 2,
                   borderBottom: "1px solid #eee",
+                  flexWrap: { xs: "wrap", sm: "nowrap" },
                 }}
               >
-                <Box
-                  sx={{
-                    width: 72,
-                    height: 72,
-                    bgcolor: "grey.200",
-                    borderRadius: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 32,
-                    overflow: "hidden",
-                    flexShrink: 0,
-                  }}
-                >
-                  {article.image ? (
-                    <Box
-                      component="img"
-                      src={article.image}
-                      alt=""
-                      sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    "📦"
-                  )}
-                </Box>
-                <Box sx={{ flexGrow: 1 }}>
+                {/* Vignette 72 px : échec d'image = placeholder de marque,
+                    jamais un carré gris vide. */}
+                <ImageProduit
+                  src={article.image || null}
+                  alt=""
+                  largeur={72}
+                  hauteur={72}
+                  sx={{ borderRadius: 1, flexShrink: 0 }}
+                  styleImage={{ objectFit: "cover" }}
+                />
+                <Box sx={{ flexGrow: 1, minWidth: 140 }}>
                   <Link
                     href={`/produits/${article.slug}`}
                     passHref
@@ -162,24 +156,21 @@ const Panier = () => {
                     {formaterPrix(article.prix, locale)}
                   </Typography>
                 </Box>
-                <TextField
-                  type="number"
-                  size="small"
-                  sx={{ width: 80 }}
-                  value={article.quantite}
-                  aria-label={t("produit.quantite")}
-                  onChange={(e) =>
-                    changerQuantite(article.slug, e.target.value)
-                  }
-                  inputProps={{ min: 1, max: 99 }}
+                <StepperQuantite
+                  valeur={article.quantite}
+                  onChange={(n) => changerQuantite(article.slug, n)}
+                  libelle={`${t("produit.quantite")} — ${article.designation}`}
                 />
                 <Typography sx={{ minWidth: 100, textAlign: "end" }}>
                   {formaterPrix(article.prix * article.quantite, locale)}
                 </Typography>
                 <IconButton
                   color="error"
-                  onClick={() => retirer(article.slug)}
-                  aria-label={t("panier.retirer")}
+                  onClick={() => {
+                    retirer(article.slug);
+                    retenirFocus(index);
+                  }}
+                  aria-label={`${t("panier.retirer")} ${article.designation}`}
                 >
                   <DeleteIcon />
                 </IconButton>
@@ -187,7 +178,9 @@ const Panier = () => {
             ))}
           </Grid>
           <Grid item xs={12} md={4}>
-            {/* Récapitulatif fixe sur desktop */}
+            {/* Récapitulatif : toujours visible, jamais replié. Totaux
+                honnêtes : sans wilaya, la livraison est « à calculer » et le
+                total porte son vrai nom (hors livraison). */}
             <Box
               sx={{
                 border: "1px solid #eee",
@@ -203,35 +196,7 @@ const Panier = () => {
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 {t("panier.recap")}
               </Typography>
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <TextField
-                  label={t("panier.codePromo")}
-                  size="small"
-                  fullWidth
-                  value={codeSaisi}
-                  onChange={(e) => setCodeSaisi(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") appliquerCode();
-                  }}
-                />
-                <Button
-                  variant="outlined"
-                  onClick={appliquerCode}
-                  disabled={chargementPromo}
-                >
-                  {t("panier.appliquer")}
-                </Button>
-              </Box>
-              {messagePromo && (
-                <Alert severity={codePromo ? "success" : "warning"}>
-                  {messagePromo}
-                </Alert>
-              )}
-              {codePromo && (
-                <Button size="small" onClick={() => setCodePromo(null)}>
-                  {t("panier.retirerCode", { code: codePromo.code })}
-                </Button>
-              )}
+              <CodePromo sousTotal={sousTotal} />
               <FormControl size="small" fullWidth>
                 <InputLabel id="wilaya-livraison-label">
                   {t("panier.wilayaLivraison")}
@@ -284,11 +249,11 @@ const Panier = () => {
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <Typography>{t("panier.livraison")}</Typography>
                 <Typography>
-                  {wilaya
-                    ? frais?.disponible
+                  {!wilaya
+                    ? t("panier.livraisonACalculer")
+                    : frais?.disponible
                       ? formaterPrix(frais.prix, locale)
-                      : t("panier.livraisonTel")
-                    : "—"}
+                      : t("panier.livraisonTel")}
                 </Typography>
               </Box>
               <Divider />
@@ -299,9 +264,16 @@ const Panier = () => {
                   fontWeight: 700,
                 }}
               >
-                <Typography variant="h6">{t("commun.total")}</Typography>
-                <Typography variant="h6" color="primary">
-                  {formaterPrix(total, locale)}
+                <Typography variant="h6" component="p">
+                  {!wilaya
+                    ? t("panier.totalHorsLivraison")
+                    : t("produit.totalALivraison")}
+                </Typography>
+                <Typography variant="h6" component="p" color="primary">
+                  {formaterPrix(
+                    wilaya && frais?.disponible ? totalAvecLivraison : totalHorsLivraison,
+                    locale,
+                  )}
                 </Typography>
               </Box>
               <Link href="/commande" passHref legacyBehavior>
@@ -311,6 +283,22 @@ const Panier = () => {
               </Link>
             </Box>
           </Grid>
+          {/* Cross-sell : sous la ligne de flottaison uniquement, produits
+              liés réels du premier article. */}
+          {lies.length > 0 && (
+            <Grid item xs={12} sx={{ mt: 4 }}>
+              <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 2 }}>
+                {t("produit.produitsLies")}
+              </Typography>
+              <Grid container spacing={2}>
+                {lies.map((lie) => (
+                  <Grid item xs={6} sm={4} md={3} key={lie.slug}>
+                    <ProductCard produit={lie} />
+                  </Grid>
+                ))}
+              </Grid>
+            </Grid>
+          )}
         </Grid>
       )}
     </Box>

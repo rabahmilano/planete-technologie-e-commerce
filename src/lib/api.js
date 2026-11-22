@@ -7,6 +7,11 @@ const api = axios.create({
 
 export const urlImage = (url) => {
   if (!url) return null;
+  if (/res\.cloudinary\.com\//.test(url)) {
+    // f_auto/q_auto : Cloudinary sert le format le plus léger fidèle
+    // (WebP/AVIF selon le navigateur) et la qualité adaptative.
+    return url.replace("/upload/", "/upload/f_auto,q_auto/");
+  }
   if (/^https?:\/\//i.test(url)) return url;
   const origine = (process.env.NEXT_PUBLIC_API_URL || "").replace(
     /\/api\/?$/,

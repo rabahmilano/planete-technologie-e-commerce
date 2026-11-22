@@ -4,9 +4,12 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { usePanier } from "src/context/CartContext";
 import { formaterPrix } from "src/lib/format";
 import { useTr } from "src/lib/i18n";
+import { Z_INDEX } from "src/lib/theme";
 
 // Barre de panier fixe en bas, mobile uniquement. Masquée sur le panier et
 // la commande (ces pages ont déjà leur CTA) et quand le panier est vide.
+// Elle se superpose au-dessus de la barre d'onglets mobile quand celle-ci
+// est visible (décalée de sa hauteur + zone de sécurité).
 const BarrePanierMobile = ({ masquee }) => {
   const { nbArticles, sousTotal } = usePanier();
   const { t, locale } = useTr();
@@ -18,10 +21,10 @@ const BarrePanierMobile = ({ masquee }) => {
       sx={{
         display: { xs: "flex", md: "none" },
         position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1100,
+        bottom: "calc(56px + env(safe-area-inset-bottom, 0px))",
+        insetInlineStart: 0,
+        insetInlineEnd: 0,
+        zIndex: Z_INDEX.barrePanierMobile,
         alignItems: "center",
         justifyContent: "space-between",
         gap: 2,
@@ -30,8 +33,6 @@ const BarrePanierMobile = ({ masquee }) => {
         bgcolor: "navy.main",
         color: "#FFFFFF",
         boxShadow: "0 -2px 12px rgba(11,31,58,0.25)",
-        // Zone de sécurité bas (iPhone & co).
-        pb: "calc(12px + env(safe-area-inset-bottom, 0px))",
       }}
     >
       <Box>

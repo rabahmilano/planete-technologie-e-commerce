@@ -1,4 +1,5 @@
 import Document, { Html, Head, Main, NextScript } from "next/document";
+import { policeArabe, policeLatine } from "src/lib/fonts";
 
 // lang + dir sont posés côté serveur d'après la locale de la requête
 // (__NEXT_DATA__.locale) : le HTML arrive déjà en RTL pour /ar.
@@ -14,7 +15,9 @@ class DocumentBoutique extends Document {
           <link rel="icon" href="/favicon.png" />
           <link rel="apple-touch-icon" href="/favicon.png" />
         </Head>
-        <body>
+        {/* Classes next/font : @font-face + préchargement d'Inter et
+            IBM Plex Sans Arabic sur chaque page, LTR comme RTL. */}
+        <body className={`${policeLatine.variable} ${policeArabe.variable}`}>
           <Main />
           <NextScript />
         </body>

@@ -16,6 +16,13 @@ export const descriptionProduit = (produit, locale) => {
   return produit.description || "";
 };
 
+// Nom affiché du produit : intitulé de publication écrit côté dashboard,
+// repli sur la désignation interne si l'intitulé est absent.
+export const nomProduit = (produit) => {
+  if (!produit) return "";
+  return produit.intitule_publication || produit.designation || "";
+};
+
 // Nom de famille bilingue : contenu boutique keyé par slug, repli sur le
 // nom renvoyé par l'API.
 export const nomFamille = (famille, locale) => {
