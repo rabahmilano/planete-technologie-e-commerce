@@ -60,20 +60,20 @@ const TimelineSuivi = ({ statut }) => {
                 aria-hidden="true"
                 sx={{
                   position: "absolute",
-                  top: 14,
+                  top: 18,
                   insetInlineStart: "50%",
                   width: "100%",
                   height: 2,
                   bgcolor:
-                    !annulee && index < indexCourant ? "primary.main" : "divider",
+                    !annulee && index < indexCourant ? "success.main" : "divider",
                 }}
               />
             )}
             <Box
               aria-hidden="true"
               sx={{
-                width: 28,
-                height: 28,
+                width: 36,
+                height: 36,
                 borderRadius: "50%",
                 display: "flex",
                 alignItems: "center",
@@ -82,7 +82,7 @@ const TimelineSuivi = ({ statut }) => {
                 bgcolor: annulee
                   ? "grey.300"
                   : franchie
-                    ? "primary.main"
+                    ? "success.main"
                     : "background.paper",
                 border: "2px solid",
                 borderColor: annulee
@@ -90,21 +90,21 @@ const TimelineSuivi = ({ statut }) => {
                   : courante
                     ? "primary.dark"
                     : franchie
-                      ? "primary.main"
+                      ? "success.main"
                       : "divider",
                 color: franchie && !annulee ? "#FFFFFF" : "text.secondary",
               }}
             >
               {annulee ? (
-                <CancelIcon sx={{ fontSize: 16 }} />
+                <CancelIcon sx={{ fontSize: 20 }} />
               ) : franchie ? (
-                <CheckCircleIcon sx={{ fontSize: 16 }} />
+                <CheckCircleIcon sx={{ fontSize: 20 }} />
               ) : (
-                <Typography variant="caption">{index + 1}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>{index + 1}</Typography>
               )}
             </Box>
             <Typography
-              variant="caption"
+              variant="body2"
               align="center"
               sx={{
                 mt: 0.75,

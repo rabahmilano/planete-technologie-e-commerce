@@ -12,6 +12,9 @@ import {
   Grid,
   Radio,
   RadioGroup,
+  Step,
+  StepLabel,
+  Stepper,
   TextField,
   Typography,
 } from "@mui/material";
@@ -52,6 +55,9 @@ const Commande = () => {
   const [bureaux, setBureaux] = useState([]);
   const [bureauxDisponibles, setBureauxDisponibles] = useState(false);
   const [frais, setFrais] = useState(null);
+  // Prix des DEUX modes de livraison pour la wilaya choisie (affichés dans
+  // les libellés radio : le client voit le total avant de confirmer).
+  const [tarifsModes, setTarifsModes] = useState({ domicile: null, bureau: null });
   const [erreurServeur, setErreurServeur] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const [etape, setEtape] = useState("formulaire");
@@ -94,6 +100,7 @@ const Commande = () => {
       setCommunes([]);
       setCommunesDisponibles(false);
       setFrais(null);
+      setTarifsModes({ domicile: null, bureau: null });
       return;
     }
     getCommunes(formulaire.code_wilaya)
@@ -108,6 +115,12 @@ const Commande = () => {
     getTarif(formulaire.code_wilaya, formulaire.type_livraison)
       .then(setFrais)
       .catch(() => setFrais(null));
+    Promise.all([
+      getTarif(formulaire.code_wilaya, "DOMICILE"),
+      getTarif(formulaire.code_wilaya, "BUREAU"),
+    ])
+      .then(([domicile, bureau]) => setTarifsModes({ domicile, bureau }))
+      .catch(() => setTarifsModes({ domicile: null, bureau: null }));
   }, [formulaire.code_wilaya, formulaire.type_livraison]);
 
   useEffect(() => {
@@ -156,7 +169,8 @@ const Commande = () => {
     if (!f.code_wilaya) erreurs.code_wilaya = t("commande.erreurWilayaCommune");
     if (!f.commune.trim()) erreurs.commune = t("commande.erreurWilayaCommune");
     if (!f.adresse_exacte.trim()) erreurs.adresse_exacte = t("commande.erreurAdresse");
-    if (!f.point_repere.trim()) erreurs.point_repere = t("commande.erreurPointRepere");
+    // Point de repère OPTIONNEL : beaucoup de clients n'en ont pas, c'était
+    // un point de friction et d'abandon (le backend ne l'exige pas).
     if (f.type_livraison === "BUREAU" && !f.bureau_livraison)
       erreurs.bureau_livraison = t("commande.erreurBureau");
     return erreurs;
@@ -217,7 +231,7 @@ const Commande = () => {
     e.preventDefault();
     const validees = validerChamps(formulaire);
     setErreurs(validees);
-    const premier = ["nom_client", "telephone", "code_wilaya", "commune", "adresse_exacte", "point_repere", "bureau_livraison"].find(
+    const premier = ["nom_client", "telephone", "code_wilaya", "commune", "adresse_exacte", "bureau_livraison"].find(
       (champ) => validees[champ],
     );
     if (premier) {
@@ -242,11 +256,39 @@ const Commande = () => {
     );
   }
 
+  // Libellés des modes de livraison avec le prix réel de la wilaya
+  // choisie (rien tant qu'aucune wilaya n'est sélectionnée).
+  const libelleDomicile =
+    tarifsModes.domicile?.disponible
+      ? `${t("panier.domicile")} — ${formaterPrix(tarifsModes.domicile.prix, locale)}`
+      : t("panier.domicile");
+  const libelleBureau =
+    tarifsModes.bureau?.disponible
+      ? `${t("panier.bureau")} — ${formaterPrix(tarifsModes.bureau.prix, locale)}`
+      : t("panier.bureau");
+
   return (
     <Box>
       <Typography variant="h1" component="h1" sx={{ mb: 3 }}>
         {t("commande.titre")}
       </Typography>
+      {/* Indicateur d'étapes : coordonnées → vérification → confirmation.
+          Le client sait où il en est dans le checkout COD. */}
+      <Stepper
+        activeStep={etape === "formulaire" ? 0 : 1}
+        alternativeLabel
+        sx={{ mb: 3, maxWidth: 640 }}
+      >
+        {[
+          t("commande.recapCoordonnees"),
+          t("commande.verifiez"),
+          t("commande.etapeConfirmation"),
+        ].map((libelle) => (
+          <Step key={libelle}>
+            <StepLabel>{libelle}</StepLabel>
+          </Step>
+        ))}
+      </Stepper>
       {erreurServeur && (
         <Alert
           severity="error"
@@ -271,6 +313,10 @@ const Commande = () => {
               noValidate
               sx={{ display: "flex", flexDirection: "column", gap: 2.5, maxWidth: 520 }}
             >
+              {/* Section 1 — vos coordonnées. */}
+              <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, mb: -1 }}>
+                {t("commande.recapCoordonnees")}
+              </Typography>
               <TextField
                 id="champ-nom"
                 label={t("commande.nomComplet")}
@@ -304,18 +350,13 @@ const Commande = () => {
                   inputRef={(el) => (refsChamps.current.telephone = el)}
                   inputProps={{ inputMode: "tel", dir: "ltr", autoComplete: "tel" }}
                 />
-                {/* Raison du numéro : rassure, réduit les abandons. */}
-                {erreurs.telephone && (
-                  <Typography variant="caption" role="alert" color="error" component="p">
-                    {erreurs.telephone}
-                  </Typography>
-                )}
-                {!erreurs.telephone && (
-                  <Typography variant="caption" color="text.secondary" component="p">
-                    {t("commande.raisonTelephone")}
-                  </Typography>
-                )}
+                {/* L'aide du champ (erreur ou raison du numéro) suffit :
+                    elle s'affiche déjà via helperText ci-dessus. */}
               </Box>
+              {/* Section 2 — adresse de livraison. */}
+              <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, mb: -1, mt: 1 }}>
+                {t("commande.recapLivraisonBlock")}
+              </Typography>
               <Autocomplete
                 id="champ-wilaya"
                 options={wilayas}
@@ -402,14 +443,12 @@ const Commande = () => {
               />
               <TextField
                 id="champ-repere"
-                label={`${t("commande.pointRepere")} *`}
-                required
+                label={t("commande.pointRepereOptionnel")}
                 fullWidth
                 value={formulaire.point_repere}
                 onChange={changer("point_repere")}
                 onBlur={auBlur("point_repere")}
-                error={Boolean(erreurs.point_repere)}
-                helperText={erreurs.point_repere}
+                helperText={t("commande.pointRepereAide")}
                 placeholder={t("commande.pointReperePlaceholder")}
                 inputRef={(el) => (refsChamps.current.point_repere = el)}
               />
@@ -425,12 +464,12 @@ const Commande = () => {
                   <FormControlLabel
                     value="DOMICILE"
                     control={<Radio />}
-                    label={t("panier.domicile")}
+                    label={libelleDomicile}
                   />
                   <FormControlLabel
                     value="BUREAU"
                     control={<Radio />}
-                    label={t("panier.bureau")}
+                    label={libelleBureau}
                   />
                 </RadioGroup>
               </Box>
@@ -512,6 +551,7 @@ const Commande = () => {
                 variant="contained"
                 color="secondary"
                 size="large"
+                fullWidth
                 disabled={envoi}
               >
                 {t("commande.verifiez")}
@@ -538,9 +578,11 @@ const Commande = () => {
           {/* Résumé collant : même total que le panier et le recap. */}
           <Box
             sx={{
-              border: "1px solid #eee",
+              border: "1px solid",
+              borderColor: "divider",
               borderRadius: 2,
-              p: 2,
+              bgcolor: "background.paper",
+              p: 2.5,
               display: "flex",
               flexDirection: "column",
               gap: 1.5,
@@ -599,7 +641,7 @@ const Commande = () => {
                   ? t("produit.totalALivraison")
                   : t("panier.totalHorsLivraison")}
               </Typography>
-              <Typography variant="h6" component="p" color="primary">
+              <Typography variant="h6" component="p" sx={{ color: "navy.main" }}>
                 {formaterPrix(
                   formulaire.code_wilaya && frais?.disponible
                     ? total

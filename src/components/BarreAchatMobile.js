@@ -3,24 +3,21 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import ImageProduit from "src/components/ImageProduit";
 import { urlImage } from "src/lib/api";
 import { formaterPrix } from "src/lib/format";
-import { usePanier } from "src/context/CartContext";
 import { useTr } from "src/lib/i18n";
 import { nomProduit } from "src/lib/produit";
 import { Z_INDEX } from "src/lib/theme";
 
 // Barre d'achat mobile collante : apparaît quand le CTA principal sort de
 // l'écran (375 px). Miniature + prix courant × quantité + CTA ambre. Elle
-// se pose au-dessus de la barre d'onglets, et AU-DESSUS de la barre panier
-// quand celle-ci est visible (panier non vide) — jamais l'une sur l'autre.
+// se pose au-dessus de la barre d'onglets uniquement : la barre panier est
+// masquée sur la fiche produit (Layout), il n'y a donc plus que 2 barres
+// fixes en mobile au lieu de 3.
 const BarreAchatMobile = ({ produit, quantite, prixUnitaire, visible, onAjouter }) => {
   const { t, locale } = useTr();
-  const { nbArticles } = usePanier();
 
   if (!visible) return null;
 
-  const bas = nbArticles > 0
-    ? "calc(124px + env(safe-area-inset-bottom, 0px))"
-    : "calc(56px + env(safe-area-inset-bottom, 0px))";
+  const bas = "calc(56px + env(safe-area-inset-bottom, 0px))";
 
   return (
     <Box
@@ -56,7 +53,7 @@ const BarreAchatMobile = ({ produit, quantite, prixUnitaire, visible, onAjouter 
         >
           {nomProduit(produit)}
         </Typography>
-        <Typography variant="body2" color="primary" sx={{ fontWeight: 700 }}>
+        <Typography variant="body2" sx={{ fontWeight: 700, color: "navy.main" }}>
           {formaterPrix(prixUnitaire * quantite, locale)}
           {quantite > 1 && (
             <Box component="span" sx={{ color: "text.secondary", fontWeight: 400 }}>

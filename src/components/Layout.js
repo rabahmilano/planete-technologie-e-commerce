@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import {
   AppBar,
@@ -15,6 +16,8 @@ import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import { usePanier } from "src/context/CartContext";
 import { useTr } from "src/lib/i18n";
 import { urlWhatsApp } from "src/lib/contact";
+import { getFamilles } from "src/lib/api";
+import { nomFamille } from "src/lib/produit";
 import { Z_INDEX } from "src/lib/theme";
 import SelecteurLangue from "src/components/SelecteurLangue";
 import BarrePanierMobile from "src/components/BarrePanierMobile";
@@ -37,7 +40,7 @@ const LogoBoutique = () => (
         component="img"
         src="/logo-min.webp"
         alt="Planète Tech"
-        sx={{ height: 40, display: { xs: "none", sm: "block" } }}
+        sx={{ height: 44, display: { xs: "none", sm: "block" } }}
       />
       <Box
         component="img"
@@ -52,13 +55,28 @@ const LogoBoutique = () => (
 const Layout = ({ children }) => {
   const { nbArticles } = usePanier();
   const router = useRouter();
-  const { t } = useTr();
+  const { t, locale } = useTr();
+  const [famillesNav, setFamillesNav] = useState([]);
 
-  // Barre panier mobile masquée sur le panier et la commande ; barre
-  // d'onglets masquée sur la commande. Padding bas du contenu ajusté en
-  // conséquence (barre panier + onglets en mobile).
+  // Navigation par catégories (familles de premier niveau) : chargée une
+  // seule fois par session (le Layout persiste entre les pages). En cas
+  // d'échec, la rangée est simplement masquée.
+  useEffect(() => {
+    getFamilles()
+      .then(setFamillesNav)
+      .catch(() => setFamillesNav([]));
+  }, []);
+
+  // Barre panier mobile masquée sur le panier, la commande et la fiche
+  // produit (sur la fiche, la barre d'achat sticky la remplace : 3 barres
+  // fixes empilées écrasaient le contenu). Barre d'onglets masquée sur la
+  // commande. Padding bas du contenu ajusté en conséquence — sur la fiche,
+  // on garde la marge large (onglets + barre d'achat).
+  const surFicheProduit = router.pathname === "/produits/[slug]";
   const sansBarrePanier =
-    router.pathname === "/panier" || router.pathname === "/commande";
+    router.pathname === "/panier" ||
+    router.pathname === "/commande" ||
+    surFicheProduit;
   const surCommande = router.pathname === "/commande";
 
   return (
@@ -70,19 +88,21 @@ const Layout = ({ children }) => {
         position: "relative",
       }}
     >
-      {/* Barre de bénéfices : une ligne, faits réels, pas de promesse de
-          retour (décision propriétaire). Au-dessus de l'entête, défile avec
-          la page : rien de ce qui est essentiel n'y vit. */}
+      {/* Barre d'annonce : une ligne utile, fond ambre / texte bleu nuit
+          bien visible (elle était quasi invisible en navy clair 13 px).
+          Au-dessus de l'entête, défile avec la page : rien de ce qui est
+          essentiel n'y vit. */}
       <Box
         component="p"
         sx={{
-          bgcolor: "navy.light",
-          color: "#FFFFFF",
+          bgcolor: "secondary.main",
+          color: "navy.main",
           textAlign: "center",
+          fontWeight: 700,
           m: 0,
           px: 2,
-          py: 0.75,
-          fontSize: "0.8125rem",
+          py: 1,
+          fontSize: "0.875rem",
         }}
       >
         {t("commun.barreBenefices")}
@@ -157,6 +177,76 @@ const Layout = ({ children }) => {
         </Toolbar>
       </AppBar>
 
+      {/* Navigation par catégories : rangée défilante sous l'entête,
+          familles réelles de l'API, état actif sur la famille courante. */}
+      {famillesNav.length > 0 && (
+        <Box
+          sx={{
+            bgcolor: "background.paper",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <Container
+            maxWidth="lg"
+            sx={{
+              display: "flex",
+              gap: 0.5,
+              overflowX: "auto",
+              py: 0.5,
+              px: { xs: 1, sm: 3 },
+              scrollbarWidth: "none",
+              "&::-webkit-scrollbar": { display: "none" },
+            }}
+          >
+            <Link href="/boutique" passHref legacyBehavior>
+              <Typography
+                component="a"
+                variant="body2"
+                sx={{
+                  color: router.pathname === "/boutique" && !router.query.famille ? "primary.main" : "text.primary",
+                  fontWeight: router.pathname === "/boutique" && !router.query.famille ? 800 : 600,
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                  px: 1.5,
+                  py: 1,
+                }}
+              >
+                {t("filtres.toutesCategories")}
+              </Typography>
+            </Link>
+            {famillesNav.map((famille) => {
+              const active =
+                router.pathname === "/boutique" &&
+                String(router.query.famille) === String(famille.id);
+              return (
+                <Link
+                  key={famille.id}
+                  href={`/boutique?famille=${famille.id}`}
+                  passHref
+                  legacyBehavior
+                >
+                  <Typography
+                    component="a"
+                    variant="body2"
+                    sx={{
+                      color: active ? "primary.main" : "text.primary",
+                      fontWeight: active ? 800 : 600,
+                      textDecoration: "none",
+                      whiteSpace: "nowrap",
+                      px: 1.5,
+                      py: 1,
+                    }}
+                  >
+                    {nomFamille(famille, locale)}
+                  </Typography>
+                </Link>
+              );
+            })}
+          </Container>
+        </Box>
+      )}
+
       <Container
         maxWidth="lg"
         component="main"
@@ -167,8 +257,9 @@ const Layout = ({ children }) => {
           py: 3,
           px: { xs: 2, sm: 3 },
           "&:focus": { outline: "none" },
-          // Espace pour la barre panier fixe et la barre d'onglets en mobile.
-          pb: { xs: surCommande ? 3 : sansBarrePanier ? 10 : 17, md: 3 },
+          // Espace pour les barres fixes en mobile : sur la fiche produit
+          // on garde la marge large (onglets + barre d'achat sticky).
+          pb: { xs: surCommande ? 3 : sansBarrePanier && !surFicheProduit ? 10 : 17, md: 3 },
         }}
       >
         {children}
@@ -194,6 +285,9 @@ const Layout = ({ children }) => {
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.85, mt: 1 }}>
                 {t("footer.baseline")}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.85, mt: 1 }}>
+                {t("atouts.verifieTexte")}
               </Typography>
             </Grid>
             <Grid item xs={6} md={3}>

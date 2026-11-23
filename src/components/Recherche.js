@@ -357,8 +357,9 @@ const Recherche = () => {
 
   return (
     <>
-      {/* Desktop : champ compact, largeur fixe */}
-      <Box sx={{ display: { xs: "none", sm: "block" }, width: 280, flexShrink: 0 }}>
+      {/* Desktop : champ extensible (il était figé à 280 px et paraissait
+          étroit au milieu de la barre navy) */}
+      <Box sx={{ display: { xs: "none", sm: "block" }, flexGrow: 1, maxWidth: 480, minWidth: 200 }}>
         {champ()}
       </Box>
       {/* Mobile : icône loupe dans la barre */}

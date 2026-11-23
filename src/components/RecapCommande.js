@@ -94,7 +94,7 @@ const RecapCommande = ({
               <Typography variant="body1" sx={{ fontWeight: 700 }}>
                 {t("produit.totalALivraison")}
               </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 700 }} color="primary">
+              <Typography variant="body1" sx={{ fontWeight: 700, color: "navy.main" }}>
                 {formaterPrix(total, locale)}
               </Typography>
             </Box>
@@ -113,8 +113,11 @@ const RecapCommande = ({
         disabled={envoi}
         onClick={surConfirmer}
       >
-        {envoi ? "…" : t("commande.confirmer")}
+        {envoi ? "…" : `${t("commande.confirmer")} — ${formaterPrix(total, locale)}`}
       </Button>
+      <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
+        {t("commande.notePaiement")}
+      </Typography>
     </Box>
   );
 };

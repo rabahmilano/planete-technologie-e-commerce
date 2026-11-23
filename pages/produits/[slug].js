@@ -334,6 +334,7 @@ const GalerieProduit = ({ produit, images }) => {
                 border: "1px solid",
                 borderColor: "divider",
               }}
+              styleImage={{ objectFit: "cover" }}
             />
           </Box>
           {images.length > 1 && (
@@ -501,6 +502,7 @@ const PageProduit = ({ produit }) => {
   // Caractéristiques : uniquement des champs réels. Poids retiré (décision
   // propriétaire n°8) ; garantie = garantie de marche (décision n°1).
   const caracteristiques = [
+    { label: t("produit.reference"), valeur: produit.slug },
     { label: t("produit.famille"), valeur: nomFamille || "—" },
     {
       label: t("produit.disponibilite"),
@@ -624,7 +626,7 @@ const PageProduit = ({ produit }) => {
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap" }}>
-            <Typography variant="price" component="p" color="primary" sx={{ fontSize: { xs: "1.5rem", md: "1.75rem" } }}>
+            <Typography variant="price" component="p" sx={{ fontSize: { xs: "1.5rem", md: "1.75rem" } }}>
               {formaterPrix(prixUnitaire, locale)}
             </Typography>
             {produit.prix_barre && produit.prix_effectif < produit.prix_barre && (
@@ -652,11 +654,17 @@ const PageProduit = ({ produit }) => {
             </Typography>
           )}
 
-          {/* Paliers réels ; la rangée applicable suit la quantité. */}
-          {produit.paliers?.length > 1 && (
+          {/* Paliers réels en offres cliquables : la rangée applicable
+              suit la quantité, un clic applique la quantité du palier.
+              Un seul palier suffit : il reste une offre cliquable
+              (la plupart des produits n'en ont qu'un). */}
+          {produit.paliers?.length > 0 && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
                 {t("produit.prixDegressifs")}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                {t("produit.palierAide")}
               </Typography>
               <Table size="small" sx={{ maxWidth: 420 }}>
                 <TableHead>
@@ -670,9 +678,12 @@ const PageProduit = ({ produit }) => {
                     <TableRow
                       key={palier.quantite_min}
                       selected={palierActif && palierActif.quantite_min === palier.quantite_min}
+                      onClick={() => setQuantite(palier.quantite_min)}
                       sx={{
+                        cursor: "pointer",
+                        "&:hover": { bgcolor: JETONS.teinte.violet },
                         "&.Mui-selected": {
-                          bgcolor: "rgba(145,85,253,0.10)",
+                          bgcolor: JETONS.teinte.violet,
                           "& > *": { fontWeight: 700 },
                         },
                       }}
@@ -797,18 +808,20 @@ const PageProduit = ({ produit }) => {
         </Grid>
       </Grid>
 
-      {/* Onglets : description réelle, caractéristiques réelles, livraison
-          et paiement — sous la ligne de flottaison. */}
+      {/* Description visible directement sous le bloc d'achat (elle était
+          cachée dans un onglet sous la ligne de flottaison) ; les onglets
+          ne gardent que les détails secondaires. */}
+      <Box sx={{ mt: 5 }}>
+        <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 2 }}>
+          {t("produit.descriptionTab")}
+        </Typography>
+        <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
+          {description || t("produit.aucuneDescription")}
+        </Typography>
+      </Box>
+
       <Box sx={{ mt: 5 }}>
         <OngletsProduit>
-          <OngletsProduit.Item
-            id="description"
-            label={t("produit.descriptionTab")}
-          >
-            <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
-              {description || t("produit.aucuneDescription")}
-            </Typography>
-          </OngletsProduit.Item>
           <OngletsProduit.Item
             id="caracteristiques"
             label={t("produit.caracteristiques")}

@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import {
   Box,
   Button,
   Divider,
   Drawer,
-  Grid,
   IconButton,
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import ImageProduit from "src/components/ImageProduit";
 import StepperQuantite from "src/components/StepperQuantite";
-import ProductCard from "src/components/ProductCard";
 import { getProduit, urlImage } from "src/lib/api";
 import { formaterPrix } from "src/lib/format";
 import { usePanier } from "src/context/CartContext";
@@ -27,7 +27,7 @@ import { Z_INDEX } from "src/lib/theme";
 const TiroirAjout = () => {
   const router = useRouter();
   const { t, locale, rtl } = useTr();
-  const { articles, changerQuantite, sousTotal } = usePanier();
+  const { articles, ajouter, changerQuantite, sousTotal } = usePanier();
   const [ouvert, setOuvert] = useState(false);
   const [slug, setSlug] = useState(null);
   const [lies, setLies] = useState([]);
@@ -95,7 +95,7 @@ const TiroirAjout = () => {
                 >
                   {article.designation}
                 </Typography>
-                <Typography variant="body2" color="primary" sx={{ fontWeight: 700 }}>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: "navy.main" }}>
                   {formaterPrix(article.prix, locale)}
                 </Typography>
               </Box>
@@ -117,6 +117,9 @@ const TiroirAjout = () => {
                 {formaterPrix(sousTotal, locale)}
               </Typography>
             </Box>
+            <Typography variant="body2" color="text.secondary">
+              {t("panier.livraisonACalculer")}
+            </Typography>
             <Button
               variant="contained"
               color="secondary"
@@ -124,23 +127,78 @@ const TiroirAjout = () => {
               fullWidth
               onClick={commander}
             >
-              {t("panier.commander")}
+              {t("panier.commander")} — {t("atouts.paiementTitre")}
             </Button>
+            <Link href="/panier" passHref legacyBehavior>
+              <Button
+                component="a"
+                variant="text"
+                fullWidth
+                onClick={fermer}
+              >
+                {t("panier.voirPanier")}
+              </Button>
+            </Link>
           </>
         )}
 
+        {/* Produits liés en rangées compactes (les ProductCard complètes
+            avec leur propre CTA écrasaient le tiroir de 400 px). */}
         {lies.length > 0 && (
           <>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, mt: 1 }}>
               {t("produit.produitsLies")}
             </Typography>
-            <Grid container spacing={1.5}>
-              {lies.map((lie) => (
-                <Grid item xs={6} key={lie.slug}>
-                  <ProductCard produit={lie} />
-                </Grid>
-              ))}
-            </Grid>
+            {lies.map((lie) => (
+              <Box
+                key={lie.slug}
+                sx={{ display: "flex", gap: 1.5, alignItems: "center" }}
+              >
+                <Link href={`/produits/${lie.slug}`} passHref legacyBehavior>
+                  <Box component="a" sx={{ flexShrink: 0, display: "block" }} onClick={fermer}>
+                    <ImageProduit
+                      src={lie.image_principale ? urlImage(lie.image_principale) : null}
+                      alt=""
+                      largeur={56}
+                      hauteur={56}
+                      sx={{ borderRadius: 1.5 }}
+                      styleImage={{ objectFit: "cover" }}
+                    />
+                  </Box>
+                </Link>
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Link href={`/produits/${lie.slug}`} passHref legacyBehavior>
+                    <Typography
+                      component="a"
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        color: "text.primary",
+                        textDecoration: "none",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                      onClick={fermer}
+                    >
+                      {nomProduit(lie)}
+                    </Typography>
+                  </Link>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: "navy.main" }}>
+                    {formaterPrix(lie.prix_effectif, locale)}
+                  </Typography>
+                </Box>
+                <IconButton
+                  color="secondary"
+                  aria-label={`${t("commun.ajouterPanier")} — ${nomProduit(lie)}`}
+                  onClick={() => ajouter(lie, 1)}
+                  sx={{ flexShrink: 0 }}
+                >
+                  <AddShoppingCartIcon />
+                </IconButton>
+              </Box>
+            ))}
           </>
         )}
       </Box>

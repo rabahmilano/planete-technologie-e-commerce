@@ -11,9 +11,11 @@ import {
   Typography,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import TimelineSuivi from "src/components/TimelineSuivi";
 import { formaterPrix } from "src/lib/format";
 import { getSuiviCommande } from "src/lib/api";
+import { urlWhatsApp } from "src/lib/contact";
 import { traduire, useTr } from "src/lib/i18n";
 
 // Statuts backend -> libellés localisés (repli : valeur brute du backend).
@@ -100,7 +102,23 @@ const Confirmation = () => {
       ) : commande && viaConfirmation ? (
         <Box>
           <Box sx={{ textAlign: "center", py: 3 }}>
-            <CheckCircleIcon color="success" sx={{ fontSize: 64 }} />
+            {/* Visuel de confirmation fort : pastille verte + coche blanche,
+                pas une simple icône posée sur la page. */}
+            <Box
+              sx={{
+                width: 88,
+                height: 88,
+                borderRadius: "50%",
+                bgcolor: "success.main",
+                color: "#FFFFFF",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mb: 1,
+              }}
+            >
+              <CheckCircleIcon sx={{ fontSize: 52 }} />
+            </Box>
             <Typography variant="h1" component="h1" sx={{ mt: 1 }}>
               {t("confirmation.merci")}
             </Typography>
@@ -114,7 +132,10 @@ const Confirmation = () => {
               </Box>
             </Typography>
           </Box>
-          <Box sx={{ border: "1px solid #eee", borderRadius: 2, p: 3 }}>
+          {/* Ce qui se passe ensuite : la timeline réelle de la commande
+              (statut NOUVELLE → première étape cochée). */}
+          <TimelineSuivi statut={commande.statut_commande} />
+          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               {t("confirmation.commande", { id: commande.id_cmd_web })}
             </Typography>
@@ -167,18 +188,35 @@ const Confirmation = () => {
               <Typography variant="h6" component="p">
                 {t("produit.totalALivraison")}
               </Typography>
-              <Typography variant="h6" component="p" color="primary">
+              <Typography variant="h6" component="p" sx={{ color: "navy.main" }}>
                 {formaterPrix(montantCOD, locale)}
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
               {t("confirmation.paiementLivraison")}
             </Typography>
-            <Link href="/boutique" passHref legacyBehavior>
-              <Button component="a" variant="contained" sx={{ mt: 3 }}>
-                {t("commun.continuerAchats")}
-              </Button>
-            </Link>
+            <Box sx={{ display: "flex", gap: 1.5, mt: 3, flexWrap: "wrap" }}>
+              <Link href="/boutique" passHref legacyBehavior>
+                <Button component="a" variant="contained" color="secondary">
+                  {t("commun.continuerAchats")}
+                </Button>
+              </Link>
+              {/* Bouton WhatsApp bien visible : le canal que le client
+                  algérien utilise quand il a un doute. Masqué si aucun
+                  numéro n'est configuré (jamais de lien mort). */}
+              {urlWhatsApp() && (
+                <Button
+                  variant="outlined"
+                  color="success"
+                  startIcon={<WhatsAppIcon />}
+                  href={urlWhatsApp()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("atouts.whatsappCta")} WhatsApp
+                </Button>
+              )}
+            </Box>
           </Box>
         </Box>
       ) : (
@@ -231,7 +269,7 @@ const Confirmation = () => {
           {/* Résultat d'une recherche autonome : carte de suivi (jamais le
               héros de confirmation). */}
           {commande && !viaConfirmation && (
-            <Box sx={{ border: "1px solid #eee", borderRadius: 2, p: 3 }}>
+            <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 3 }}>
               <Box
                 sx={{
                   display: "flex",
@@ -280,31 +318,48 @@ const Confirmation = () => {
               )}
               {commande.colis_yalidine?.historique?.length > 0 && (
                 <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
                     {t("suivi.historiqueTitre")}
                   </Typography>
-                  {commande.colis_yalidine.historique.map((evenement, index) => (
-                    <Box
-                      key={`${evenement.date_status}-${index}`}
-                      sx={{ display: "flex", gap: 1.5, mt: 1 }}
-                    >
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ minWidth: 150, direction: "ltr" }}
+                  {/* Frise visuelle : pastille + date + statut (la liste de
+                      lignes de texte brutes était peu lisible). */}
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                    {commande.colis_yalidine.historique.map((evenement, index) => (
+                      <Box
+                        key={`${evenement.date_status}-${index}`}
+                        sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}
                       >
-                        {evenement.date_status || ""}
-                      </Typography>
-                      <Typography variant="body2">
-                        {evenement.status}
-                        {evenement.reason ? ` — ${evenement.reason}` : ""}
-                        {(evenement.commune_name || evenement.wilaya_name) &&
-                          ` (${[evenement.commune_name, evenement.wilaya_name]
-                            .filter(Boolean)
-                            .join(", ")})`}
-                      </Typography>
-                    </Box>
-                  ))}
+                        <Box
+                          aria-hidden="true"
+                          sx={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            bgcolor: index === 0 ? "primary.main" : "divider",
+                            mt: 0.75,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", direction: "ltr" }}
+                          >
+                            {evenement.date_status || ""}
+                          </Typography>
+                          <Typography variant="body2">
+                            {evenement.status}
+                            {evenement.reason ? ` — ${evenement.reason}` : ""}
+                            {(evenement.commune_name || evenement.wilaya_name) &&
+                              ` (${[evenement.commune_name, evenement.wilaya_name]
+                                .filter(Boolean)
+                                .join(", ")})`}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
               )}
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -338,7 +393,7 @@ const Confirmation = () => {
                 <Typography variant="h6" component="p">
                   {t("produit.totalALivraison")}
                 </Typography>
-                <Typography variant="h6" component="p" color="primary">
+                <Typography variant="h6" component="p" sx={{ color: "navy.main" }}>
                   {formaterPrix(montantCOD, locale)}
                 </Typography>
               </Box>

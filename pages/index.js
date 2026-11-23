@@ -4,20 +4,16 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   Grid,
   Typography,
 } from "@mui/material";
-import WifiIcon from "@mui/icons-material/Wifi";
-import DeveloperBoardIcon from "@mui/icons-material/DeveloperBoard";
-import UsbIcon from "@mui/icons-material/Usb";
-import PowerIcon from "@mui/icons-material/Power";
-import LocalOfferIcon from "@mui/icons-material/LocalOffer";
-import CategoryIcon from "@mui/icons-material/Category";
 import ProductCard from "src/components/ProductCard";
 import Atouts from "src/components/Atouts";
 import ImageProduit from "src/components/ImageProduit";
 import { getFamilles, getProduits, getProduit, urlImage } from "src/lib/api";
-import { OMBRES } from "src/lib/theme";
+import { formaterPrix } from "src/lib/format";
+import { JETONS, OMBRES } from "src/lib/theme";
 import { useTr } from "src/lib/i18n";
 import { nomFamille, nomProduit } from "src/lib/produit";
 
@@ -26,15 +22,6 @@ import { nomFamille, nomProduit } from "src/lib/produit";
 // repli sur le nom du produit en typographie géante, jamais d'emplacement
 // photo vide.
 const SLUG_HERO = "chargeur-ugreen-30w-cd319";
-
-// Icône par famille, d'après le slug réel de l'API ; icône générique en
-// repli. Les familles inconnues de cette table gardent leur nom API.
-const ICONES_FAMILLES = {
-  "cartes-wifi": WifiIcon,
-  "cartes-pcie": DeveloperBoardIcon,
-  "cles-wifi-usb": UsbIcon,
-  "chargeurs-et-cables": PowerIcon,
-};
 
 // Déduplication héritée de l'accueil client : un produit en promo ne se
 // répète pas dans « Mis en avant ». Les deux sections ne sont séparées que
@@ -88,6 +75,9 @@ export const getServerSideProps = async () => {
               slug: hero.slug,
               nom: nomProduit(hero),
               image: hero.image_principale,
+              prix_effectif: hero.prix_effectif,
+              prix_barre: hero.prix_barre,
+              promo_active: hero.promo_active,
             }
           : null,
         erreur: false,
@@ -107,8 +97,10 @@ export const getServerSideProps = async () => {
 };
 
 // Tuile de catégorie : image réelle de la famille si elle existe, sinon
-// icône MUI sur fond teinté violet ; nom + compte produit réel de l'API.
-const TuileCategorie = ({ href, nom, nbProduits, image, Icone }) => {
+// monogramme typographique (première lettre du nom sur dégradé bleu nuit) —
+// jamais d'icône générique, qui ne montre pas ce qu'on vend. Nom + compte
+// produit réel de l'API.
+const TuileCategorie = ({ href, nom, nbProduits, image }) => {
   const { t } = useTr();
   return (
     <Link href={href} passHref legacyBehavior>
@@ -147,11 +139,18 @@ const TuileCategorie = ({ href, nom, nbProduits, image, Icone }) => {
               alignItems: "center",
               justifyContent: "center",
               borderRadius: 2,
-              bgcolor: "rgba(145,85,253,0.12)",
-              color: "primary.dark",
+              background:
+                "linear-gradient(135deg, #0B1F3A 0%, #16324F 100%)",
+              color: "#FFFFFF",
             }}
           >
-            <Icone sx={{ fontSize: 44 }} />
+            <Typography
+              component="span"
+              aria-hidden="true"
+              sx={{ fontSize: 56, fontWeight: 800, lineHeight: 1 }}
+            >
+              {nom.charAt(0).toUpperCase()}
+            </Typography>
           </Box>
         )}
         <Box>
@@ -193,9 +192,9 @@ const Accueil = ({ familles, misEnAvant, promosSeules, produitHero, erreur }) =>
     <Box>
       <HeadSEO locale={locale} />
 
-      {/* Héros : un message, un CTA, une vraie photo produit. Panneau bleu
-          nuit uni (le dégradé est retiré), photo à droite en LTR — le
-          flexbox inversé se fait tout seul en RTL. Pas de carrousel. */}
+      {/* Héros : le produit phare avec son nom, son prix et un CTA
+          « Commander » — pas un slogan générique. Photo réelle encadrée
+          (carte blanche sur panneau bleu nuit clair). Pas de carrousel. */}
       <Box
         sx={{
           bgcolor: "navy.main",
@@ -217,20 +216,71 @@ const Accueil = ({ familles, misEnAvant, promosSeules, produitHero, erreur }) =>
               justifyContent: "center",
             }}
           >
+            <Chip
+              label={t("hero.produitPhare")}
+              size="small"
+              sx={{
+                alignSelf: "flex-start",
+                bgcolor: JETONS.promo.fond,
+                color: JETONS.promo.texte,
+                fontWeight: 700,
+                mb: 2,
+              }}
+            />
             <Typography variant="display" component="h1">
-              {t("hero.titre")}
+              {produitHero?.nom || t("hero.titre")}
             </Typography>
             <Typography variant="body1" component="p" sx={{ mt: 1.5, opacity: 0.9 }}>
               {t("hero.sousTitre")}
             </Typography>
-            <Box sx={{ mt: 3, maxWidth: 360 }}>
-              <Link href="/boutique" passHref legacyBehavior>
+            {produitHero?.prix_effectif != null && (
+              <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5, mt: 2, flexWrap: "wrap" }}>
+                <Typography variant="h3" component="p" sx={{ fontWeight: 800, color: "#FFFFFF" }}>
+                  {formaterPrix(produitHero.prix_effectif, locale)}
+                </Typography>
+                {produitHero.prix_barre && produitHero.prix_barre > produitHero.prix_effectif && (
+                  <>
+                    <Typography
+                      variant="body1"
+                      component="span"
+                      sx={{ textDecoration: "line-through", opacity: 0.7 }}
+                    >
+                      {formaterPrix(produitHero.prix_barre, locale)}
+                    </Typography>
+                    <Chip
+                      label={`−${Math.round(
+                        ((produitHero.prix_barre - produitHero.prix_effectif) /
+                          produitHero.prix_barre) *
+                          100,
+                      )} %`}
+                      size="small"
+                      sx={{ bgcolor: JETONS.promo.fond, color: JETONS.promo.texte, fontWeight: 700 }}
+                    />
+                  </>
+                )}
+              </Box>
+            )}
+            <Box sx={{ mt: 3, display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+              <Link
+                href={produitHero ? `/produits/${produitHero.slug}` : "/boutique"}
+                passHref
+                legacyBehavior
+              >
                 <Button
                   component="a"
                   variant="contained"
                   color="secondary"
                   size="large"
-                  sx={{ width: { xs: "100%", sm: "auto" } }}
+                >
+                  {t("panier.commander")}
+                </Button>
+              </Link>
+              <Link href="/boutique" passHref legacyBehavior>
+                <Button
+                  component="a"
+                  variant="outlined"
+                  size="large"
+                  sx={{ color: "#FFFFFF", borderColor: "rgba(255,255,255,0.5)" }}
                 >
                   {t("hero.cta")}
                 </Button>
@@ -245,11 +295,11 @@ const Accueil = ({ familles, misEnAvant, promosSeules, produitHero, erreur }) =>
             xs={12}
             md={6}
             sx={{
-              bgcolor: "background.default",
+              bgcolor: "navy.light",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              p: { xs: 2, md: 4 },
+              p: { xs: 3, md: 4 },
             }}
           >
             {produitHero?.image ? (
@@ -261,7 +311,15 @@ const Accueil = ({ familles, misEnAvant, promosSeules, produitHero, erreur }) =>
                 <Box
                   component="a"
                   aria-label={produitHero.nom}
-                  sx={{ width: "100%", maxWidth: 560, display: "block" }}
+                  sx={{
+                    width: "100%",
+                    maxWidth: 480,
+                    display: "block",
+                    bgcolor: "#FFFFFF",
+                    borderRadius: 3,
+                    p: 2,
+                    boxShadow: OMBRES.lg,
+                  }}
                 >
                   <ImageProduit
                     src={urlImage(produitHero.image)}
@@ -269,7 +327,7 @@ const Accueil = ({ familles, misEnAvant, promosSeules, produitHero, erreur }) =>
                     ratio={1}
                     prioritaire
                     sizes="(max-width: 900px) 92vw, 44vw"
-                    sx={{ borderRadius: 3 }}
+                    sx={{ borderRadius: 2 }}
                   />
                 </Box>
               </Link>
@@ -281,7 +339,7 @@ const Accueil = ({ familles, misEnAvant, promosSeules, produitHero, erreur }) =>
                 component="p"
                 sx={{
                   fontSize: { xs: 40, md: 64 },
-                  color: "text.primary",
+                  color: "#FFFFFF",
                   textAlign: "center",
                 }}
               >
@@ -293,8 +351,12 @@ const Accueil = ({ familles, misEnAvant, promosSeules, produitHero, erreur }) =>
       </Box>
 
       {/* Confiance au point d'action : juste sous le héros (plus une seule
-          bande au bas de page). */}
+          bande au bas de page). Titre de section affiché (il existe dans
+          les locales mais n'était jamais rendu). */}
       <Box sx={{ mb: 5 }}>
+        <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
+          {t("sections.atouts")}
+        </Typography>
         <Atouts />
       </Box>
 
@@ -326,22 +388,27 @@ const Accueil = ({ familles, misEnAvant, promosSeules, produitHero, erreur }) =>
             nom={nomFamille(famille, locale)}
             nbProduits={famille.nb_produits}
             image={famille.image}
-            Icone={ICONES_FAMILLES[famille.slug] || CategoryIcon}
           />
         ))}
         <TuileCategorie
           href="/boutique?promo=true"
           nom={t("sections.promos")}
           nbProduits={nbPromos}
-          Icone={LocalOfferIcon}
         />
       </Box>
 
       {/* Produits mis en avant : prix visibles sans cliquer, vraies
           données est_mis_en_avant. */}
-      <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-        {t("sections.misEnAvant")}
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", mb: 2 }}>
+        <Typography variant="h5" component="h2">
+          {t("sections.misEnAvant")}
+        </Typography>
+        <Link href="/boutique" passHref legacyBehavior>
+          <Typography component="a" variant="body2" sx={{ color: "primary.main", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap" }}>
+            {t("commun.voirTout")}
+          </Typography>
+        </Link>
+      </Box>
       <Grid container spacing={2} sx={{ mb: 5 }}>
         {misEnAvant.map((produit) => (
           <Grid item xs={6} sm={4} md={3} key={produit.slug}>
@@ -352,9 +419,16 @@ const Accueil = ({ familles, misEnAvant, promosSeules, produitHero, erreur }) =>
 
       {promosSeules.length > 0 && (
         <>
-          <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-            {t("sections.promos")}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", mb: 2 }}>
+            <Typography variant="h5" component="h2">
+              {t("sections.promos")}
+            </Typography>
+            <Link href="/boutique?promo=true" passHref legacyBehavior>
+              <Typography component="a" variant="body2" sx={{ color: "primary.main", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap" }}>
+                {t("commun.voirTout")}
+              </Typography>
+            </Link>
+          </Box>
           <Grid container spacing={2}>
             {promosSeules.map((produit) => (
               <Grid item xs={6} sm={4} md={3} key={produit.slug}>

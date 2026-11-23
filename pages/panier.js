@@ -13,6 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import ImageProduit from "src/components/ImageProduit";
 import StepperQuantite from "src/components/StepperQuantite";
 import CodePromo from "src/components/CodePromo";
@@ -100,11 +101,12 @@ const Panier = () => {
       </Typography>
       {articles.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 6 }}>
-          <Typography color="text.secondary" sx={{ mb: 2 }}>
+          <ShoppingCartIcon sx={{ fontSize: 64, color: "text.secondary", opacity: 0.5 }} />
+          <Typography color="text.secondary" sx={{ mb: 2, mt: 1 }}>
             {t("panier.vide")}
           </Typography>
           <Link href="/boutique" passHref legacyBehavior>
-            <Button component="a" variant="contained">
+            <Button component="a" variant="contained" color="secondary">
               {t("commun.voirBoutique")}
             </Button>
           </Link>
@@ -120,19 +122,23 @@ const Panier = () => {
                   display: "flex",
                   gap: 2,
                   alignItems: "center",
-                  py: 2,
-                  borderBottom: "1px solid #eee",
+                  p: 2,
+                  mb: 2,
+                  bgcolor: "background.paper",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 2,
                   flexWrap: { xs: "wrap", sm: "nowrap" },
                 }}
               >
-                {/* Vignette 72 px : échec d'image = placeholder de marque,
+                {/* Vignette 80 px : échec d'image = placeholder de marque,
                     jamais un carré gris vide. */}
                 <ImageProduit
                   src={article.image || null}
                   alt=""
-                  largeur={72}
-                  hauteur={72}
-                  sx={{ borderRadius: 1, flexShrink: 0 }}
+                  largeur={80}
+                  hauteur={80}
+                  sx={{ borderRadius: 1.5, flexShrink: 0 }}
                   styleImage={{ objectFit: "cover" }}
                 />
                 <Box sx={{ flexGrow: 1, minWidth: 140 }}>
@@ -152,7 +158,7 @@ const Panier = () => {
                       {article.designation}
                     </Typography>
                   </Link>
-                  <Typography color="primary" sx={{ fontWeight: 700 }}>
+                  <Typography sx={{ fontWeight: 700, color: "navy.main" }}>
                     {formaterPrix(article.prix, locale)}
                   </Typography>
                 </Box>
@@ -161,7 +167,7 @@ const Panier = () => {
                   onChange={(n) => changerQuantite(article.slug, n)}
                   libelle={`${t("produit.quantite")} — ${article.designation}`}
                 />
-                <Typography sx={{ minWidth: 100, textAlign: "end" }}>
+                <Typography sx={{ minWidth: 100, textAlign: "end", fontWeight: 700, color: "navy.main" }}>
                   {formaterPrix(article.prix * article.quantite, locale)}
                 </Typography>
                 <IconButton
@@ -178,14 +184,16 @@ const Panier = () => {
             ))}
           </Grid>
           <Grid item xs={12} md={4}>
-            {/* Récapitulatif : toujours visible, jamais replié. Totaux
-                honnêtes : sans wilaya, la livraison est « à calculer » et le
-                total porte son vrai nom (hors livraison). */}
+            {/* Récapitulatif « caisse » : toujours visible, jamais replié.
+                Totaux honnêtes : sans wilaya, la livraison est « à calculer »
+                et le total porte son vrai nom (hors livraison). */}
             <Box
               sx={{
-                border: "1px solid #eee",
+                border: "1px solid",
+                borderColor: "divider",
                 borderRadius: 2,
-                p: 2,
+                bgcolor: "background.paper",
+                p: 2.5,
                 display: "flex",
                 flexDirection: "column",
                 gap: 1.5,
@@ -269,7 +277,7 @@ const Panier = () => {
                     ? t("panier.totalHorsLivraison")
                     : t("produit.totalALivraison")}
                 </Typography>
-                <Typography variant="h6" component="p" color="primary">
+                <Typography variant="h6" component="p" sx={{ color: "navy.main" }}>
                   {formaterPrix(
                     wilaya && frais?.disponible ? totalAvecLivraison : totalHorsLivraison,
                     locale,
@@ -277,10 +285,13 @@ const Panier = () => {
                 </Typography>
               </Box>
               <Link href="/commande" passHref legacyBehavior>
-                <Button component="a" variant="contained" size="large">
-                  {t("panier.commander")}
+                <Button component="a" variant="contained" color="secondary" size="large" fullWidth>
+                  {t("panier.commander")} — {t("atouts.paiementTitre")}
                 </Button>
               </Link>
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
+                {t("commande.notePaiement")}
+              </Typography>
             </Box>
           </Grid>
           {/* Cross-sell : sous la ligne de flottaison uniquement, produits

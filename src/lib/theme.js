@@ -70,6 +70,17 @@ export const JETONS = {
   fond: { principal: COULEURS.fond, carte: "#FFFFFF" },
   cta: { fond: COULEURS.ambre, texte: COULEURS.texte, survol: COULEURS.ambreFonce },
   promo: { fond: COULEURS.ambreClair, texte: COULEURS.bleuNuit },
+  // Teintes de fond : un seul endroit pour les voiles navy / violet qui
+  // étaient codés en dur (lightbox, rangées actives, tuiles catégories).
+  teinte: {
+    navy: "rgba(11,31,58,0.06)",
+    navyFort: "rgba(11,31,58,0.10)",
+    violet: "rgba(145,85,253,0.10)",
+    violetFort: "rgba(145,85,253,0.12)",
+  },
+  // Rayons : une seule échelle — 8 boutons/champs, 12 cartes, 16 sections,
+  // 24 héros/tuiles. Les pages n'inventent plus leurs propres rayons.
+  rayons: { sm: 8, md: 12, lg: 16, xl: 24 },
   retours: {
     succes: COULEURS.vertConfiance,
     succesFonce: COULEURS.vertFonce,
@@ -157,12 +168,15 @@ export const creerThemeBoutique = (rtl = false) =>
         [MD]: { fontSize: "1.5rem" },
       },
       // Prix : le plus grand chiffre d'une carte après la photo ; chiffres
-      // tabulaires pour aligner les colonnes de prix en DZD.
+      // tabulaires pour aligner les colonnes de prix en DZD. Couleur bleu
+      // nuit : le prix est l'élément le plus regardé, il porte la couleur
+      // dominante du site, pas le violet secondaire.
       price: {
         fontSize: "1.25rem",
         fontWeight: 700,
         lineHeight: 1.2,
         fontVariantNumeric: "tabular-nums",
+        color: COULEURS.bleuNuit,
         [MD]: { fontSize: "1.375rem" },
       },
       // Corps : 16 px minimum côté latin (iOS zoome les champs < 16 px).

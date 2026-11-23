@@ -46,6 +46,16 @@ const aplatirFamilles = (familles) => {
 const CLE_SCROLL = "ptech-scroll-boutique";
 const CLE_CORRECTION = "ptech-correction-recherche";
 
+// Tranches de prix prédéfinies (DZD) : un clic suffit, sans taper de
+// chiffres — les champs min/max restent en repli pour un intervalle libre.
+const TRANCHES_PRIX = [
+  { min: "", max: "", label: null },
+  { min: 0, max: 1000, label: "≤ 1 000 DZD" },
+  { min: 1000, max: 3000, label: "1 000 – 3 000 DZD" },
+  { min: 3000, max: 5000, label: "3 000 – 5 000 DZD" },
+  { min: 5000, max: "", label: "≥ 5 000 DZD" },
+];
+
 const Boutique = () => {
   const router = useRouter();
   const { t, locale, rtl } = useTr();
@@ -280,12 +290,23 @@ const Boutique = () => {
         )}
       </Breadcrumbs>
 
-      <Typography variant="h1" component="h1" sx={{ mb: 1 }}>
-        {t("commun.boutique")}
-      </Typography>
-      <Typography color="text.secondary" sx={{ mb: 2 }}>
-        {t("filtres.resultats", { n: total })}
-      </Typography>
+      <Box
+        sx={{
+          bgcolor: "navy.main",
+          color: "#FFFFFF",
+          borderRadius: 3,
+          px: { xs: 2.5, sm: 3 },
+          py: { xs: 2.5, sm: 3 },
+          mb: 3,
+        }}
+      >
+        <Typography variant="h1" component="h1" sx={{ mb: 0.5 }}>
+          {nomFamilleActive || t("commun.boutique")}
+        </Typography>
+        <Typography sx={{ opacity: 0.85 }}>
+          {t("filtres.resultats", { n: total })}
+        </Typography>
+      </Box>
 
       <ChipsFiltres
         filtres={filtres}
@@ -311,7 +332,23 @@ const Boutique = () => {
           md={3}
           sx={{ display: { xs: "none", md: "block" } }}
         >
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {/* Rail de filtres en carte, sections titrées (il ressemblait à
+              un formulaire admin). Catégories en liste cliquable avec
+              comptes réels, prix en tranches prédéfinies. */}
+          <Box
+            sx={{
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              bgcolor: "background.paper",
+              p: 2,
+              position: "sticky",
+              top: 88,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2.5,
+            }}
+          >
             <TextField
               label={t("commun.rechercher")}
               size="small"
@@ -322,72 +359,141 @@ const Boutique = () => {
                 }
               }}
             />
-            <FormControl size="small" fullWidth>
-              <InputLabel id="categorie-label">
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
                 {t("filtres.categorie")}
-              </InputLabel>
-              <Select
-                labelId="categorie-label"
-                id="categorie"
-                label={t("filtres.categorie")}
-                value={filtres.famille || ""}
-                onChange={(e) =>
-                  appliquerFiltres({ famille: e.target.value })
-                }
-              >
-                <MenuItem value="">{t("filtres.toutesCategories")}</MenuItem>
-                {famillesPlates.map((famille) => (
-                  <MenuItem key={famille.id} value={String(famille.id)}>
-                    {nomFamille(famille, locale)} ({famille.nb_produits})
-                  </MenuItem>
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => appliquerFiltres({ famille: "" })}
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: !filtres.famille ? "primary.main" : "text.primary",
+                    fontWeight: !filtres.famille ? 800 : 400,
+                    textTransform: "none",
+                  }}
+                >
+                  {t("filtres.toutesCategories")}
+                </Button>
+                {familles.map((famille) => (
+                  <Box key={famille.id}>
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={() => appliquerFiltres({ famille: String(famille.id) })}
+                      sx={{
+                        justifyContent: "space-between",
+                        width: "100%",
+                        color: String(filtres.famille) === String(famille.id) ? "primary.main" : "text.primary",
+                        fontWeight: String(filtres.famille) === String(famille.id) ? 800 : 400,
+                        textTransform: "none",
+                      }}
+                    >
+                      <span>{nomFamille(famille, locale)}</span>
+                      <span style={{ opacity: 0.6 }}>({famille.nb_produits})</span>
+                    </Button>
+                    {(famille.sous_familles || []).map((sous) => (
+                      <Button
+                        key={sous.id}
+                        variant="text"
+                        size="small"
+                        onClick={() => appliquerFiltres({ famille: String(sous.id) })}
+                        sx={{
+                          justifyContent: "space-between",
+                          width: "100%",
+                          ps: 3,
+                          color: String(filtres.famille) === String(sous.id) ? "primary.main" : "text.secondary",
+                          fontWeight: String(filtres.famille) === String(sous.id) ? 800 : 400,
+                          textTransform: "none",
+                        }}
+                      >
+                        <span>{nomFamille(sous, locale)}</span>
+                        <span style={{ opacity: 0.6 }}>({sous.nb_produits})</span>
+                      </Button>
+                    ))}
+                  </Box>
                 ))}
-              </Select>
-            </FormControl>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              {t("filtres.prix")}
-            </Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <TextField
-                label={t("filtres.prixMin")}
-                size="small"
-                type="number"
-                defaultValue={filtres.prix_min || ""}
-                onBlur={(e) =>
-                  appliquerFiltres({ prix_min: e.target.value })
+              </Box>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                {t("filtres.prix")}
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+                {TRANCHES_PRIX.map((tranche) => {
+                  const active =
+                    String(filtres.prix_min || "") === String(tranche.min) &&
+                    String(filtres.prix_max || "") === String(tranche.max);
+                  return (
+                    <Button
+                      key={tranche.label || "tous"}
+                      variant="text"
+                      size="small"
+                      onClick={() =>
+                        appliquerFiltres({ prix_min: tranche.min, prix_max: tranche.max })
+                      }
+                      sx={{
+                        justifyContent: "flex-start",
+                        color: active ? "primary.main" : "text.primary",
+                        fontWeight: active ? 800 : 400,
+                        textTransform: "none",
+                      }}
+                    >
+                      {tranche.label || t("filtres.tousPrix")}
+                    </Button>
+                  );
+                })}
+              </Box>
+              <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                <TextField
+                  label={t("filtres.prixMin")}
+                  size="small"
+                  type="number"
+                  defaultValue={filtres.prix_min || ""}
+                  onBlur={(e) =>
+                    appliquerFiltres({ prix_min: e.target.value })
+                  }
+                />
+                <TextField
+                  label={t("filtres.prixMax")}
+                  size="small"
+                  type="number"
+                  defaultValue={filtres.prix_max || ""}
+                  onBlur={(e) =>
+                    appliquerFiltres({ prix_max: e.target.value })
+                  }
+                />
+              </Box>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                {t("filtres.disponibilite")}
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={filtres.promo === "true"}
+                    onChange={(e) =>
+                      appliquerFiltres({ promo: e.target.checked })
+                    }
+                  />
                 }
+                label={t("filtres.enPromo")}
               />
-              <TextField
-                label={t("filtres.prixMax")}
-                size="small"
-                type="number"
-                defaultValue={filtres.prix_max || ""}
-                onBlur={(e) =>
-                  appliquerFiltres({ prix_max: e.target.value })
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={filtres.en_stock === "true"}
+                    onChange={(e) =>
+                      appliquerFiltres({ en_stock: e.target.checked })
+                    }
+                  />
                 }
+                label={t("filtres.enStockUniquement")}
               />
             </Box>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={filtres.promo === "true"}
-                  onChange={(e) =>
-                    appliquerFiltres({ promo: e.target.checked })
-                  }
-                />
-              }
-              label={t("filtres.enPromo")}
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={filtres.en_stock === "true"}
-                  onChange={(e) =>
-                    appliquerFiltres({ en_stock: e.target.checked })
-                  }
-                />
-              }
-              label={t("filtres.enStockUniquement")}
-            />
             <Button
               variant="outlined"
               onClick={() => router.push("/boutique")}
