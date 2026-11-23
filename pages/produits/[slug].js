@@ -805,7 +805,7 @@ const PageProduit = ({ produit }) => {
             id="description"
             label={t("produit.descriptionTab")}
           >
-            <Typography variant="body1" sx={{ whiteSpace: "pre-line" }}>
+            <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
               {description || t("produit.aucuneDescription")}
             </Typography>
           </OngletsProduit.Item>
