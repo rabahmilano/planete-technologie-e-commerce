@@ -278,6 +278,35 @@ const Confirmation = () => {
                   </Box>
                 </Typography>
               )}
+              {commande.colis_yalidine?.historique?.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                    {t("suivi.historiqueTitre")}
+                  </Typography>
+                  {commande.colis_yalidine.historique.map((evenement, index) => (
+                    <Box
+                      key={`${evenement.date_status}-${index}`}
+                      sx={{ display: "flex", gap: 1.5, mt: 1 }}
+                    >
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ minWidth: 150, direction: "ltr" }}
+                      >
+                        {evenement.date_status || ""}
+                      </Typography>
+                      <Typography variant="body2">
+                        {evenement.status}
+                        {evenement.reason ? ` — ${evenement.reason}` : ""}
+                        {(evenement.commune_name || evenement.wilaya_name) &&
+                          ` (${[evenement.commune_name, evenement.wilaya_name]
+                            .filter(Boolean)
+                            .join(", ")})`}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                 {t("suivi.modifiee")} : {libelleStatut(commande.statut_commande, locale)}
               </Typography>
