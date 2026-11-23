@@ -285,7 +285,7 @@ const PageProduit = ({ produit }) => {
               })}
             </Typography>
           )}
-          <Typography variant="body1" sx={{ mt: 2, whiteSpace: "pre-line" }}>
+          <Typography variant="body1" sx={{ mt: 2, whiteSpace: "pre-wrap" }}>
             {description || t("produit.aucuneDescription")}
           </Typography>
           {produit.paliers?.length > 0 && (
