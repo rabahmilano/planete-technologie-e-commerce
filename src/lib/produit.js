@@ -3,8 +3,10 @@ import { NOMS_FAMILLES } from "src/lib/contenu";
 // Helpers défensifs pour les champs bilingues et le stock.
 // Les descriptions produits vivent dans la base (description /
 // description_ar, écrites côté dashboard) et sont renvoyées par l'API
-// publique. Les noms de familles bilingues vivent dans le repo boutique
-// (src/lib/contenu.js), keyés par slug.
+// publique. Les noms de familles bilingues vivent d'abord dans la base
+// (nom_famille_ar, écrit côté dashboard) ; le dictionnaire boutique
+// (src/lib/contenu.js, keyé par slug) n'est plus qu'un repli transitoire
+// tant que les noms en base ne sont pas remplis.
 
 // Description dans la langue active : arabe de la base, repli sur le
 // français si l'arabe est absent.
@@ -23,13 +25,13 @@ export const nomProduit = (produit) => {
   return produit.intitule_publication || produit.designation || "";
 };
 
-// Nom de famille bilingue : contenu boutique keyé par slug, repli sur le
-// nom renvoyé par l'API.
+// Nom de famille bilingue : nom arabe de la base en priorité, puis
+// dictionnaire boutique (repli transitoire), puis nom renvoyé par l'API.
 export const nomFamille = (famille, locale) => {
   if (!famille) return "";
   const contenu = famille.slug ? NOMS_FAMILLES[famille.slug] : null;
   if (locale === "ar") {
-    return contenu?.ar || contenu?.fr || famille.nom || "";
+    return famille.nom_famille_ar || contenu?.ar || contenu?.fr || famille.nom || "";
   }
   return contenu?.fr || famille.nom || "";
 };
