@@ -39,9 +39,18 @@ export const getBureaux = (wilaya, commune) =>
     .get("/livraison/bureaux", { params: { wilaya, commune } })
     .then((r) => r.data);
 
-export const getTarif = (wilaya, type) =>
+export const getTarif = (wilaya, type, options = {}) =>
   api
-    .get("/livraison/tarif", { params: { wilaya, type } })
+    .get("/livraison/tarif", {
+      params: {
+        wilaya,
+        type,
+        // Prix exact par commune (id Yalidine) et poids FACTURÉ du panier en
+        // grammes (D4/D8) — optionnels : le serveur applique ses défauts.
+        commune: options.commune || undefined,
+        poids_grammes: options.poids_grammes || undefined,
+      },
+    })
     .then((r) => r.data);
 
 export const verifierCode = (code, montant_commande) =>

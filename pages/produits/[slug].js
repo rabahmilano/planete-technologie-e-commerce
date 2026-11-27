@@ -53,6 +53,7 @@ import {
   nomProduit,
   stockFaible,
   stockNumerique,
+  poidsFactureProduitGrammes,
 } from "src/lib/produit";
 
 export const getServerSideProps = async ({ params }) => {
@@ -458,11 +459,15 @@ const PageProduit = ({ produit }) => {
       return;
     }
     setTarifEnCours(true);
-    getTarif(wilaya, "DOMICILE")
+    // D8 : le devis de la fiche porte le poids facturé du produit pour la
+    // quantité choisie (le supplément surpoids s'applique au-delà de 5 kg).
+    getTarif(wilaya, "DOMICILE", {
+      poids_grammes: Math.round(poidsFactureProduitGrammes(produit, quantite)) || undefined,
+    })
       .then(setTarif)
       .catch(() => setTarif(null))
       .finally(() => setTarifEnCours(false));
-  }, [wilaya]);
+  }, [wilaya, produit, quantite]);
 
   const nomWilayaChoisie = wilayas.find((w) => w.code === wilaya)?.nom || "";
 

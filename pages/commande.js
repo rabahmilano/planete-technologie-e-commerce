@@ -31,6 +31,7 @@ import {
 import CodePromo from "src/components/CodePromo";
 import RecapCommande from "src/components/RecapCommande";
 import { useTr } from "src/lib/i18n";
+import { poidsFacturePanierGrammes } from "src/lib/produit";
 
 const CLE_FORMULAIRE = "ptech-formulaire-commande";
 const FORMULAIRE_VIDE = {
@@ -112,16 +113,28 @@ const Commande = () => {
         setCommunes([]);
         setCommunesDisponibles(false);
       });
-    getTarif(formulaire.code_wilaya, formulaire.type_livraison)
+    // D4/D8 : le devis porte le prix exact de la commune choisie et le
+    // poids FACTURÉ du panier (max(poids réel, volumétrique) × quantité,
+    // défaut 200 g) pour que le supplément surpoids s'applique.
+    const paramsDevis = {
+      commune: formulaire.communeId || undefined,
+      poids_grammes: Math.round(poidsFacturePanierGrammes(articles)) || undefined,
+    };
+    getTarif(formulaire.code_wilaya, formulaire.type_livraison, paramsDevis)
       .then(setFrais)
       .catch(() => setFrais(null));
     Promise.all([
-      getTarif(formulaire.code_wilaya, "DOMICILE"),
-      getTarif(formulaire.code_wilaya, "BUREAU"),
+      getTarif(formulaire.code_wilaya, "DOMICILE", paramsDevis),
+      getTarif(formulaire.code_wilaya, "BUREAU", paramsDevis),
     ])
       .then(([domicile, bureau]) => setTarifsModes({ domicile, bureau }))
       .catch(() => setTarifsModes({ domicile: null, bureau: null }));
-  }, [formulaire.code_wilaya, formulaire.type_livraison]);
+  }, [
+    articles,
+    formulaire.code_wilaya,
+    formulaire.type_livraison,
+    formulaire.communeId,
+  ]);
 
   useEffect(() => {
     if (
@@ -153,6 +166,12 @@ const Commande = () => {
     null;
   const communeObj =
     communes.find((c) => String(c.id) === String(formulaire.communeId)) || null;
+  // D10 : la livraison au bureau ne propose que les communes avec bureau.
+  // En repli Yalidine (a_bureau absent), la liste reste complète.
+  const communesAffichees =
+    formulaire.type_livraison === "BUREAU"
+      ? communes.filter((c) => c.a_bureau !== false)
+      : communes;
 
   const reduction = codePromo ? codePromo.montant_reduction : 0;
   const fraisLivraison = frais?.disponible ? frais.prix : 0;
@@ -171,8 +190,18 @@ const Commande = () => {
     if (!f.adresse_exacte.trim()) erreurs.adresse_exacte = t("commande.erreurAdresse");
     // Point de repère OPTIONNEL : beaucoup de clients n'en ont pas, c'était
     // un point de friction et d'abandon (le backend ne l'exige pas).
-    if (f.type_livraison === "BUREAU" && !f.bureau_livraison)
-      erreurs.bureau_livraison = t("commande.erreurBureau");
+    if (f.type_livraison === "BUREAU") {
+      // D10 : une commune sans bureau est refusée AVANT le message «
+      // choisissez un bureau » — c'est la cause racine à corriger.
+      const communeChoisie = communes.find(
+        (c) => String(c.id) === String(f.communeId),
+      );
+      if (communeChoisie && communeChoisie.a_bureau === false) {
+        erreurs.bureau_livraison = t("commande.erreurBureauCommune");
+      } else if (!f.bureau_livraison) {
+        erreurs.bureau_livraison = t("commande.erreurBureau");
+      }
+    }
     return erreurs;
   };
 
@@ -196,6 +225,9 @@ const Commande = () => {
         wilaya: wilayaNom,
         code_wilaya: parseInt(formulaire.code_wilaya, 10),
         commune: formulaire.commune.trim(),
+        commune_id: formulaire.communeId
+          ? parseInt(formulaire.communeId, 10)
+          : undefined,
         adresse_exacte: formulaire.adresse_exacte.trim() || undefined,
         point_repere: formulaire.point_repere.trim() || undefined,
         type_livraison: formulaire.type_livraison,
@@ -389,7 +421,7 @@ const Commande = () => {
               {communesDisponibles ? (
                 <Autocomplete
                   id="champ-commune"
-                  options={communes}
+                  options={communesAffichees}
                   value={communeObj}
                   getOptionLabel={(c) => c.nom || ""}
                   isOptionEqualToValue={(o, v) => String(o.id) === String(v.id)}

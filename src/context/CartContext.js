@@ -59,6 +59,13 @@ export const PanierProvider = ({ children }) => {
           designation: nomProduit(produit),
           prix: produit.prix_effectif,
           image: urlImage(produit.image_principale),
+          // D8 : poids et dimensions emportés pour calculer le poids FACTURÉ
+          // du panier à l'appel de devis (les anciens paniers en localStorage
+          // n'en ont pas : défaut 200 g côté helper).
+          poids_grammes: produit.poids_grammes ?? null,
+          longueur_cm: produit.longueur_cm ?? null,
+          largeur_cm: produit.largeur_cm ?? null,
+          hauteur_cm: produit.hauteur_cm ?? null,
           quantite,
         },
       ];

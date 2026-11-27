@@ -21,6 +21,7 @@ import ProductCard from "src/components/ProductCard";
 import { usePanier } from "src/context/CartContext";
 import { formaterPrix } from "src/lib/format";
 import { getProduit, getTarif, getWilayas } from "src/lib/api";
+import { poidsFacturePanierGrammes } from "src/lib/produit";
 import { useTr } from "src/lib/i18n";
 
 const Panier = () => {
@@ -49,10 +50,13 @@ const Panier = () => {
       setFrais(null);
       return;
     }
-    getTarif(wilaya, typeLivraison)
+    // D8 : le devis du panier porte le poids facturé total.
+    getTarif(wilaya, typeLivraison, {
+      poids_grammes: Math.round(poidsFacturePanierGrammes(articles)) || undefined,
+    })
       .then(setFrais)
       .catch(() => setFrais(null));
-  }, [wilaya, typeLivraison]);
+  }, [wilaya, typeLivraison, articles]);
 
   // Cross-sell : produits liés RÉELS du premier article du panier, sous le
   // CTA de commande seulement (jamais de suggestion inventée).

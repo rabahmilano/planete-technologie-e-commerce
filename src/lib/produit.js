@@ -42,18 +42,45 @@ export const nomFamilleProduit = (produit, locale) => {
   return "";
 };
 
+// D8 — poids facturé d'un produit : max(poids réel, L×l×h/5000) × quantité,
+// défaut 200 g quand le poids manque (même défaut que le backend :
+// config/utils.js POIDS_DEFAUT_GRAMMES). Renvoie des GRAMMES.
+export const poidsFactureProduitGrammes = (produit, quantite = 1) => {
+  const reelKg = (produit?.poids_grammes ?? 200) / 1000;
+  const { longueur_cm, largeur_cm, hauteur_cm } = produit || {};
+  const volumetriqueKg =
+    longueur_cm && largeur_cm && hauteur_cm
+      ? (longueur_cm * largeur_cm * hauteur_cm) / 5000
+      : null;
+  const factureKg = volumetriqueKg === null ? reelKg : Math.max(reelKg, volumetriqueKg);
+  return factureKg * quantite * 1000;
+};
+
+// Poids facturé TOTAL du panier (grammes) : Σ max(poids, volumétrique) × qte.
+// Les articles ajoutés avant ce changement n'ont pas de poids : défaut 200 g.
+export const poidsFacturePanierGrammes = (articles) =>
+  (articles || []).reduce(
+    (total, article) =>
+      total + poidsFactureProduitGrammes(article, article.quantite || 1),
+    0,
+  );
+
 // Stock numérique réel, s'il est exposé par l'API (plusieurs noms possibles).
-// Retourne null quand l'API ne donne que le booléen en_stock : on n'invente
-// jamais un nombre d'exemplaires.
+// L'API publique n'expose stock_restant que s'il est faible (≤ 3) : sinon
+// retourne null — on n'invente jamais un nombre d'exemplaires.
 export const stockNumerique = (produit) => {
   if (!produit) return null;
   const candidats = [
+    produit.stock_restant,
     produit.qte_dispo,
     produit.quantite_disponible,
     produit.qte_stock,
     produit.stock,
   ];
   for (const valeur of candidats) {
+    // null/undefined = « non exposé » : Number(null) vaut 0 et ferait
+    // croire à un stock de 0 — on saute franchement.
+    if (valeur === null || valeur === undefined) continue;
     const nombre = Number(valeur);
     if (Number.isFinite(nombre) && nombre >= 0) return nombre;
   }
